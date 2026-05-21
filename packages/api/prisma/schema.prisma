@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  walletAddress String   @unique @map("wallet_address") @db.VarChar(64)
+  displayName   String?  @map("display_name") @db.VarChar(80)
+  avatarUrl     String?  @map("avatar_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  stories        Story[]
+  generationJobs GenerationJob[]
+  assets         Asset[]
+
+  @@map("users")
+}
+
+model Story {
+  id                      String   @id @default(uuid()) @db.Uuid
+  ownerUserId             String   @map("owner_user_id") @db.Uuid
+  title                   String   @db.VarChar(200)
+  synopsis                String?
+  coverImageUrl           String?  @map("cover_image_url")
+  status                  String   @default("ongoing") @db.VarChar(20)
+  visibility              String   @default("private") @db.VarChar(20)
+  stylePreset             String   @default("manga-bw") @map("style_preset") @db.VarChar(50)
+  aspectRatio             String   @default("3:4") @map("aspect_ratio") @db.VarChar(20)
+  totalChapters           Int      @default(0) @map("total_chapters")
+  totalPanels             Int      @default(0) @map("total_panels")
+  publicSlug              String?  @unique @map("public_slug") @db.VarChar(220)
+  isNsfw                  Boolean  @default(false) @map("is_nsfw")
+  moderationStatus        String   @default("approved") @map("moderation_status") @db.VarChar(20)
+  latestStoryBibleVersion Int      @default(1) @map("latest_story_bible_version")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @default(now()) @updatedAt @map("updated_at")
+
+  owner          User               @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  storyBibles    StoryBible[]
+  characters     Character[]
+  locations      Location[]
+  chapters       Chapter[]
+  branches       StoryBranch[]
+  generationJobs GenerationJob[]
+  assets         Asset[]
+  metrics        PublicStoryMetrics?
+
+  @@map("stories")
+}
+
+model StoryBible {
+  id              String   @id @default(uuid()) @db.Uuid
+  storyId         String   @map("story_id") @db.Uuid
+  version         Int
+  logline         String?
+  genre           String?  @db.VarChar(80)
+  artDirection    Json     @default("{}") @map("art_direction")
+  worldRules      Json     @default("{}") @map("world_rules")
+  canonFacts      Json     @default("[]") @map("canon_facts")
+  openThreads     Json     @default("[]") @map("open_threads")
+  timelineSummary Json     @default("[]") @map("timeline_summary")
+  rawBible        Json     @default("{}") @map("raw_bible")
+  createdBy       String   @default("system") @map("created_by") @db.VarChar(20)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, version])
+  @@map("story_bibles")
+}
+
+model Character {
+  id               String   @id @default(uuid()) @db.Uuid
+  storyId          String   @map("story_id") @db.Uuid
+  name             String   @db.VarChar(120)
+  role             String?  @db.VarChar(50)
+  description      String?
+  appearanceTraits Json     @default("{}") @map("appearance_traits")
+  personalityTraits Json    @default("{}") @map("personality_traits")
+  canonicalOutfit  Json     @default("{}") @map("canonical_outfit")
+  referenceImageUrl String? @map("reference_image_url")
+  referencePrompt  String?  @map("reference_prompt")
+  status           String   @default("active") @db.VarChar(20)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@map("characters")
+}
+
+model Location {
+  id               String   @id @default(uuid()) @db.Uuid
+  storyId          String   @map("story_id") @db.Uuid
+  name             String   @db.VarChar(120)
+  description      String?
+  visualTraits     Json     @default("{}") @map("visual_traits")
+  referenceImageUrl String? @map("reference_image_url")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  story  Story          @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  panels ChapterPanel[]
+
+  @@map("locations")
+}
+
+model Chapter {
+  id                String   @id @default(uuid()) @db.Uuid
+  storyId           String   @map("story_id") @db.Uuid
+  chapterNumber     Int      @map("chapter_number")
+  title             String?  @db.VarChar(200)
+  userPrompt        String   @map("user_prompt")
+  continuationMode  String   @default("canon") @map("continuation_mode") @db.VarChar(30)
+  plannerSummary    String?  @map("planner_summary")
+  canonicalSummary  String?  @map("canonical_summary")
+  chapterStatus     String   @default("published") @map("chapter_status") @db.VarChar(20)
+  panelCount        Int      @default(0) @map("panel_count")
+  coverPanelAssetId String?  @map("cover_panel_asset_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+
+  story          Story          @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  panels         ChapterPanel[]
+  generationJobs GenerationJob[]
+  assets         Asset[]
+
+  @@unique([storyId, chapterNumber])
+  @@map("chapters")
+}
+
+model ChapterPanel {
+  id             String   @id @default(uuid()) @db.Uuid
+  chapterId      String   @map("chapter_id") @db.Uuid
+  panelNumber    Int      @map("panel_number")
+  narrationText  String?  @map("narration_text")
+  dialogueText   Json     @default("[]") @map("dialogue_text")
+  visualPrompt   String   @map("visual_prompt")
+  negativePrompt String?  @map("negative_prompt")
+  seed           BigInt?
+  locationId     String?  @map("location_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  chapter  Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  assets   Asset[]
+
+  @@unique([chapterId, panelNumber])
+  @@map("chapter_panels")
+}
+
+model Asset {
+  id               String   @id @default(uuid()) @db.Uuid
+  ownerUserId      String?  @map("owner_user_id") @db.Uuid
+  storyId          String?  @map("story_id") @db.Uuid
+  chapterId        String?  @map("chapter_id") @db.Uuid
+  panelId          String?  @map("panel_id") @db.Uuid
+  assetType        String   @map("asset_type") @db.VarChar(30)
+  fileUrl          String   @map("file_url")
+  thumbnailUrl     String?  @map("thumbnail_url")
+  mimeType         String?  @map("mime_type") @db.VarChar(100)
+  width            Int?
+  height           Int?
+  fileSizeBytes    BigInt?  @map("file_size_bytes")
+  generationModel  String?  @map("generation_model") @db.VarChar(120)
+  generationParams Json     @default("{}") @map("generation_params")
+  version          Int      @default(1)
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  owner   User?         @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+  story   Story?        @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  chapter Chapter?      @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  panel   ChapterPanel? @relation(fields: [panelId], references: [id], onDelete: Cascade)
+
+  @@map("assets")
+}
+
+model GenerationJob {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  storyId       String?   @map("story_id") @db.Uuid
+  chapterId     String?   @map("chapter_id") @db.Uuid
+  jobType       String    @map("job_type") @db.VarChar(30)
+  status        String    @default("queued") @db.VarChar(20)
+  inputPayload  Json      @default("{}") @map("input_payload")
+  outputPayload Json      @default("{}") @map("output_payload")
+  errorMessage  String?   @map("error_message")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  startedAt     DateTime? @map("started_at")
+  finishedAt    DateTime? @map("finished_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  story   Story?   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@map("generation_jobs")
+}
+
+model StoryBranch {
+  id              String   @id @default(uuid()) @db.Uuid
+  storyId         String   @map("story_id") @db.Uuid
+  parentChapterId String?  @map("parent_chapter_id") @db.Uuid
+  name            String   @db.VarChar(120)
+  branchType      String   @default("alternate") @map("branch_type") @db.VarChar(20)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@map("story_branches")
+}
+
+model PublicStoryMetrics {
+  storyId         String   @id @map("story_id") @db.Uuid
+  viewCount       BigInt   @default(0) @map("view_count")
+  uniqueViewCount BigInt   @default(0) @map("unique_view_count")
+  shareCount      BigInt   @default(0) @map("share_count")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@map("public_story_metrics")
+}
