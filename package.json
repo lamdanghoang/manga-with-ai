@@ -9,6 +9,7 @@
     "dev:api": "npm run dev -w packages/api",
     "dev:web": "npm run dev -w packages/web",
     "build": "npm run build -w packages/shared && npm run build -w packages/api && npm run build -w packages/web",
+    "build:web": "pnpm --filter @manga-with-ai/shared build && pnpm --filter @manga-with-ai/web build",
     "lint": "npm run lint -w packages/api && npm run lint -w packages/web"
   },
   "devDependencies": {
