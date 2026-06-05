@@ -31,6 +31,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthed(!!localStorage.getItem('token'));
   }, []);
 
+  // MiniPay: auto-connect wallet on load (UI stays visible; sign-in is still explicit)
+  useEffect(() => {
+    if (localStorage.getItem('logged_out')) return;
+    if (isConnected || connectors.length === 0) return;
+    connect({ connector: connectors[0] });
+  }, [isConnected, connectors, connect]);
+
   const signIn = useCallback(async () => {
     if (!address || signing.current) return;
     signing.current = true;

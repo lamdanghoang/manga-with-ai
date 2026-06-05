@@ -2,13 +2,14 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { getApiUrl } from '@/lib/api';
 
 export default function PublicChapterPage() {
   const { slug, chapterId } = useParams();
   const [chapter, setChapter] = useState<any>(null);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/v1/public/stories/${slug}/chapters/${chapterId}`)
+    fetch(`${getApiUrl()}/v1/public/stories/${slug}/chapters/${chapterId}`)
       .then(r => r.json()).then(setChapter).catch(console.error);
   }, [slug, chapterId]);
 

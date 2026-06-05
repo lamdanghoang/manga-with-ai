@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { getApiUrl } from '@/lib/api';
 
 export default function PublicReaderPage() {
   const { slug } = useParams();
   const [story, setStory] = useState<any>(null);
   const [chapters, setChapters] = useState<any[]>([]);
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const API = getApiUrl();
 
   useEffect(() => {
     fetch(`${API}/v1/public/stories/${slug}`)

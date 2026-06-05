@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { getApiUrl } from '@/lib/api';
 
 
 export default function ExplorePage() {
   const [stories, setStories] = useState<any[]>([]);
   const [filter, setFilter] = useState<'latest' | 'popular'>('latest');
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const API = getApiUrl();
 
   useEffect(() => {
     fetch(`${API}/v1/public/feed`)
