@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { RequireAuth } from '@/components/RequireAuth';
 
 export default function ChapterPage() {
   const { id, chapterId } = useParams();
@@ -12,9 +13,11 @@ export default function ChapterPage() {
     api(`/v1/stories/${id}/chapters/${chapterId}`).then(setChapter).catch(console.error);
   }, [id, chapterId]);
 
-  if (!chapter) return <div className="p-4 text-center text-gray-400">Loading chapter...</div>;
-
   return (
+    <RequireAuth>
+    {!chapter ? (
+      <div className="p-4 text-center text-gray-400">Loading chapter...</div>
+    ) : (
     <main className="p-4 pt-8 max-w-lg mx-auto">
       <h1 className="text-xl font-bold mb-4">Chapter {chapter.chapterNumber}{chapter.title ? `: ${chapter.title}` : ''}</h1>
 
@@ -42,5 +45,7 @@ export default function ChapterPage() {
         <Link href={`/story/${id}/continue`} className="flex-1 text-center bg-purple-600 py-3 rounded-xl font-semibold">Continue →</Link>
       </div>
     </main>
+    )}
+    </RequireAuth>
   );
 }

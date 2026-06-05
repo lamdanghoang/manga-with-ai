@@ -3,10 +3,13 @@ import { useAccount, useDisconnect } from 'wagmi';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { RequireAuth } from '@/components/RequireAuth';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ProfilePage() {
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
+  const { signOut } = useAuth();
   const [stories, setStories] = useState<any[]>([]);
 
   useEffect(() => {
@@ -14,7 +17,7 @@ export default function ProfilePage() {
   }, []);
 
   function handleLogout() {
-    localStorage.removeItem('token');
+    signOut();
     disconnect();
     window.location.href = '/';
   }
@@ -24,6 +27,7 @@ export default function ProfilePage() {
   const publicCount = stories.filter(s => s.visibility === 'public').length;
 
   return (
+    <RequireAuth title="Your profile" description="Connect wallet to view your creator stats and works.">
     <main className="pt-6 px-4 max-w-3xl mx-auto relative">
       {/* Profile Header */}
       <section className="relative z-10 flex flex-col md:flex-row gap-6 items-center md:items-end">
@@ -112,5 +116,6 @@ export default function ProfilePage() {
         <p className="font-display text-sm text-primary/30 uppercase animate-pulse">More works coming soon...</p>
       </div>
     </main>
+    </RequireAuth>
   );
 }

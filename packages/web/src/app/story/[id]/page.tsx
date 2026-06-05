@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { RequireAuth } from '@/components/RequireAuth';
 
 export default function StoryPage() {
   const { id } = useParams();
@@ -21,9 +22,11 @@ export default function StoryPage() {
     setStory({ ...story, visibility: 'public' });
   }
 
-  if (!story) return <div className="p-8 text-center font-label text-secondary">Loading...</div>;
-
   return (
+    <RequireAuth title="Your story" description="Connect wallet to view and manage your manga.">
+    {!story ? (
+      <div className="p-8 text-center font-label text-secondary">Loading...</div>
+    ) : (
     <main className="pt-6 px-4 max-w-lg mx-auto">
       {/* Title */}
       <div className="border-4 border-on-surface bg-white comic-shadow p-4 mb-6">
@@ -69,5 +72,7 @@ export default function StoryPage() {
         <p className="mt-3 text-center font-label text-xs text-secondary uppercase">✓ Published</p>
       )}
     </main>
+    )}
+    </RequireAuth>
   );
 }

@@ -2,16 +2,22 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 
 export default function Home() {
+  const { isAuthed, connectWallet, signingIn } = useAuth();
   const [stories, setStories] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!isAuthed) {
+      setStories([]);
+      return;
+    }
     api<{ items: any[] }>('/v1/stories')
       .then((d) => setStories(d.items || []))
       .catch(() => setStories([]));
-  }, []);
+  }, [isAuthed]);
 
   return (
     <main className="pt-6 px-4 max-w-7xl mx-auto relative">
@@ -33,6 +39,19 @@ export default function Home() {
 
       {/* Manga Grid 2 columns */}
       <div className="grid grid-cols-2 gap-3">
+        {!isAuthed && (
+          <div className="col-span-2 border-4 border-on-surface bg-white shadow-[6px_6px_0px_0px_#1a1c1c] p-6 text-center">
+            <p className="font-display text-lg uppercase mb-2">Your library</p>
+            <p className="text-sm text-secondary mb-4">Connect wallet to see and manage your manga.</p>
+            <button
+              onClick={connectWallet}
+              disabled={signingIn}
+              className="bg-primary text-white font-label font-bold uppercase tracking-widest text-xs px-5 py-2.5 border-2 border-on-surface comic-shadow-sm"
+            >
+              {signingIn ? 'Signing in...' : 'Connect Wallet'}
+            </button>
+          </div>
+        )}
         {stories.map((s, idx) => {
           const rotations = ['', 'rotate-[0.5deg]', '-rotate-[0.5deg]', 'rotate-1'];
           return (

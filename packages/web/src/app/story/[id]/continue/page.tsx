@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { RequireAuth } from '@/components/RequireAuth';
 
 export default function ContinuePage() {
   const { id } = useParams();
@@ -31,16 +32,19 @@ export default function ContinuePage() {
 
   if (loading) {
     return (
-      <main className="flex flex-col items-center justify-center min-h-screen p-4">
-        <div className="border-4 border-on-surface bg-white comic-shadow-lg p-8 text-center speed-lines">
-          <span className="material-symbols-outlined text-5xl text-primary animate-pulse mb-4 block">auto_fix_high</span>
-          <p className="font-display text-xl uppercase">{status}</p>
-        </div>
-      </main>
+      <RequireAuth>
+        <main className="flex flex-col items-center justify-center min-h-screen p-4">
+          <div className="border-4 border-on-surface bg-white comic-shadow-lg p-8 text-center speed-lines">
+            <span className="material-symbols-outlined text-5xl text-primary animate-pulse mb-4 block">auto_fix_high</span>
+            <p className="font-display text-xl uppercase">{status}</p>
+          </div>
+        </main>
+      </RequireAuth>
     );
   }
 
   return (
+    <RequireAuth>
     <main className="pt-6 px-4 max-w-lg mx-auto">
       <div className="border-4 border-on-surface bg-surface-container-low p-3 comic-shadow flex items-center gap-3 mb-6">
         <span className="font-label text-xs bg-on-surface text-white px-3 py-1 font-bold skew-x-[-4deg]">NEXT</span>
@@ -57,5 +61,6 @@ export default function ContinuePage() {
         </button>
       </form>
     </main>
+    </RequireAuth>
   );
 }

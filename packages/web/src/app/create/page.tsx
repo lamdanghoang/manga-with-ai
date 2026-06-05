@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { RequireAuth } from '@/components/RequireAuth';
 
 interface CharRef { name: string; role: string; imageData: string; preview: string }
 
@@ -58,6 +59,7 @@ export default function CreatePage() {
 
   if (loading) {
     return (
+      <RequireAuth title="Create your manga" description="Connect wallet to start a new AI-generated series.">
       <main className="fixed inset-0 flex flex-col items-center justify-center p-4 z-50 bg-surface">
         <div className="border-4 border-on-surface bg-white comic-shadow-lg p-8 text-center speed-lines max-w-sm w-full">
           <div className="w-12 h-12 border-4 border-on-surface border-t-primary rounded-none animate-spin mx-auto mb-4"></div>
@@ -65,10 +67,12 @@ export default function CreatePage() {
           <p className="text-xs text-secondary mt-2 font-label">This may take a minute...</p>
         </div>
       </main>
+      </RequireAuth>
     );
   }
 
   return (
+    <RequireAuth title="Create your manga" description="Connect wallet to start a new AI-generated series.">
     <main className="pt-4 px-4 max-w-lg mx-auto pb-8">
       {/* Step Banner */}
       <div className="border-4 border-on-surface bg-surface-container-low p-3 comic-shadow flex items-center gap-3 mb-6">
@@ -173,5 +177,6 @@ export default function CreatePage() {
         <span className="material-symbols-outlined text-2xl">arrow_forward</span>
       </button>
     </main>
+    </RequireAuth>
   );
 }
