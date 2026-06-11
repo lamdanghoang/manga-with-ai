@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { ConnectWalletButton } from '@/components/ConnectWalletButton';
+import { WalletBalance } from '@/components/WalletBalance';
 import { useAuth } from '@/context/AuthContext';
 
 export function Header() {
@@ -14,6 +15,7 @@ export function Header() {
         </Link>
       </div>
       <div className="flex items-center gap-2">
+        {isAuthed && <WalletBalance />}
         <Link href="/api-docs" className="font-label text-[10px] bg-on-surface text-white px-2 py-1 font-bold uppercase hover:bg-primary transition-colors">API</Link>
         <ConnectWalletButton />
         {isAuthed && (

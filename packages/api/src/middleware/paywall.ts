@@ -1,26 +1,22 @@
-import { createPaywall } from 'n-payment';
+import { Request, Response, NextFunction } from 'express';
 
-const MERCHANT_ADDRESS = process.env.MERCHANT_WALLET || '0x0000000000000000000000000000000000000000';
+const MERCHANT_ADDRESS = process.env.MERCHANT_WALLET!;
 
-export const paywall = (createPaywall as any)({
-  routes: {
-    'POST /v1/stories': {
-      price: '10000',
-      celo: {
-        payTo: MERCHANT_ADDRESS,
-        network: 'eip155:11142220',
-        asset: 'USDC',
-        scheme: 'eip3009',
-      },
+export function paywall(req: Request, res: Response, next: NextFunction) {
+  // Only block POST requests that create/continue stories
+  if (req.method !== 'POST') return next();
+  if (!req.path.match(/^\/stories(\/[^/]+\/chapters)?$/)) return next();
+
+  res.status(402).json({
+    error: 'Payment Required',
+    message: 'This generation requires payment. $0.01 USDC on Celo Sepolia.',
+    payment: {
+      amount: '10000',
+      asset: 'USDC',
+      assetAddress: '0x01C5C0122039549AD1493B8220cABEdD739BC44E',
+      network: 'celo-sepolia',
+      chainId: 44787,
+      payTo: MERCHANT_ADDRESS,
     },
-    'POST /v1/stories/:storyId/chapters': {
-      price: '10000',
-      celo: {
-        payTo: MERCHANT_ADDRESS,
-        network: 'eip155:11142220',
-        asset: 'USDC',
-        scheme: 'eip3009',
-      },
-    },
-  },
-});
+  });
+}

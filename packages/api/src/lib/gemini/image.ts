@@ -44,6 +44,12 @@ export async function generateImage(opts: GenerateImageOptions): Promise<ImageRe
     );
     console.log('[IMAGE] Curl returned, parsing response...');
     data = JSON.parse(result.toString());
+    if (data.error) {
+      console.error('[IMAGE] API error:', data.error.message);
+    } else {
+      const parts = data.candidates?.[0]?.content?.parts || [];
+      console.log('[IMAGE] Parts:', parts.length, parts.map((p: any) => p.text ? 'text' : p.inlineData ? 'image' : 'other'));
+    }
   } finally {
     try { fs.unlinkSync(tmpFile); } catch {}
   }

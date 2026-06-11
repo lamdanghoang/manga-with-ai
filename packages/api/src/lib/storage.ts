@@ -32,6 +32,13 @@ async function uploadToR2(buffer: Buffer, mimeType: string, filename: string): P
   return `${process.env.R2_PUBLIC_URL}/${key}`;
 }
 
+export function uploadImageSync(buffer: Buffer, mimeType: string): string {
+  const ext = mimeType.includes('png') ? 'png' : 'jpg';
+  const filename = `${randomUUID()}.${ext}`;
+  fs.writeFileSync(path.join(LOCAL_DIR, filename), buffer);
+  return `${API_URL}/uploads/${filename}`;
+}
+
 export async function uploadImage(buffer: Buffer, mimeType: string): Promise<string> {
   const ext = mimeType.includes('png') ? 'png' : 'jpg';
   const filename = `${randomUUID()}.${ext}`;
@@ -40,7 +47,6 @@ export async function uploadImage(buffer: Buffer, mimeType: string): Promise<str
     return uploadToR2(buffer, mimeType, filename);
   }
 
-  // Fallback: save locally
   fs.writeFileSync(path.join(LOCAL_DIR, filename), buffer);
   return `${API_URL}/uploads/${filename}`;
 }

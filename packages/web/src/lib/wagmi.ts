@@ -4,10 +4,10 @@ import { celo, celoSepolia } from 'wagmi/chains';
 import { injected } from 'wagmi/connectors';
 
 export const config = createConfig({
-  chains: [celo, celoSepolia],
+  chains: [celoSepolia, celo],
   connectors: [injected()],
   transports: {
-    [celo.id]: http(),
     [celoSepolia.id]: http(),
+    [celo.id]: http(),
   } as any,
 });

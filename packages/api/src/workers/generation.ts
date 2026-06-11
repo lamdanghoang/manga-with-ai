@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma';
 import { generateStructuredJSON, generateText } from '../lib/gemini';
 import { generateImage } from '../lib/gemini';
-import { uploadImage } from '../lib/storage';
+import { uploadImage, uploadImageSync } from '../lib/storage';
 
 // Remove null bytes and invalid UTF-8 from strings before DB insert
 function sanitize(str: string): string {
@@ -167,22 +167,30 @@ export async function processCreateStory(jobId: string) {
 
     // Generate one full page image with character references
     const charRefs = await prisma.character.findMany({ where: { storyId: job.storyId!, referenceImageUrl: { not: null } }, take: 5 });
+    let chapterImageUrl: string | null = null;
     try {
       const refImages = charRefs.filter(c => c.referenceImageUrl && c.referenceImageUrl.startsWith('data:')).map(c => ({ data: c.referenceImageUrl!.replace(/^data:[^;]+;base64,/, ''), mimeType: 'image/png' }));
       const result = await generateImage({ prompt: fullPagePrompt, referenceImages: refImages.length ? refImages : undefined, aspectRatio: '2:3' });
       console.log('[IMAGE] Got image, size:', result.imageData.length, 'bytes');
-      const fileUrl = await uploadImage(result.imageData, result.mimeType);
-      console.log('[IMAGE] Saved to:', fileUrl);
+      chapterImageUrl = uploadImageSync(result.imageData, result.mimeType);
+      console.log('[IMAGE] Saved to:', chapterImageUrl);
+    } catch (imgErr: any) {
+      if (!imgErr.message?.includes('EPROTO')) {
+        console.error("Image generation failed:", imgErr.message);
+      } else {
+        console.warn('[IMAGE] SSL background error (ignored)');
+      }
+    }
+    // Save asset to DB (outside try-catch to avoid SSL interference)
+    if (chapterImageUrl) {
       await prisma.asset.create({
         data: {
           ownerUserId: job.userId, storyId: job.storyId!, chapterId: chapter.id,
-          assetType: 'chapter_page', fileUrl, mimeType: result.mimeType,
+          assetType: 'chapter_page', fileUrl: chapterImageUrl, mimeType: 'image/png',
           generationModel: 'gemini-2.5-flash-image', generationParams: { prompt: sanitize(fullPagePrompt).slice(0, 500) },
         },
       });
       console.log('[IMAGE] Asset saved to DB');
-    } catch (imgErr: any) {
-      console.error("Full page generation failed:", imgErr.message, "\nStack:", imgErr.stack?.slice(0,300));
     }
 
     // Update story counts + set cover from first chapter image
@@ -240,15 +248,23 @@ export async function processContinueStory(jobId: string) {
 
     // Generate one full page image with character references
     const charRefs = characters.filter(c => c.referenceImageUrl).slice(0, 5);
+    let continueImageUrl: string | null = null;
     try {
       const refImages = charRefs.map(c => ({ data: c.referenceImageUrl!.replace(/^data:[^;]+;base64,/, ''), mimeType: 'image/png' }));
       const result = await generateImage({ prompt: fullPagePrompt, referenceImages: refImages.length ? refImages : undefined, aspectRatio: '2:3' });
-      const fileUrl = await uploadImage(result.imageData, result.mimeType);
-      await prisma.asset.create({
-        data: { ownerUserId: job.userId, storyId: job.storyId!, chapterId: chapter.id, assetType: 'chapter_page', fileUrl, mimeType: result.mimeType, generationModel: 'gemini-3-pro-image-preview', generationParams: { prompt: sanitize(fullPagePrompt) } },
-      });
+      continueImageUrl = uploadImageSync(result.imageData, result.mimeType);
+      console.log('[IMAGE] Continue saved to:', continueImageUrl);
     } catch (imgErr: any) {
-      console.error("Full page generation failed:", imgErr.message, "\nStack:", imgErr.stack?.slice(0,300));
+      if (!imgErr.message?.includes('EPROTO')) {
+        console.error("Continue image failed:", imgErr.message);
+      } else {
+        console.warn('[IMAGE] SSL error (ignored)');
+      }
+    }
+    if (continueImageUrl) {
+      await prisma.asset.create({
+        data: { ownerUserId: job.userId, storyId: job.storyId!, chapterId: chapter.id, assetType: 'chapter_page', fileUrl: continueImageUrl, mimeType: 'image/png', generationModel: 'gemini-2.5-flash-image', generationParams: { prompt: sanitize(fullPagePrompt).slice(0, 500) } },
+      });
     }
 
     // Update bible version
@@ -283,7 +299,7 @@ export async function processRegeneratePanel(jobId: string) {
     await prisma.asset.updateMany({ where: { panelId, isActive: true }, data: { isActive: false } });
 
     const result = await generateImage({ prompt: panel.visualPrompt, aspectRatio: panel.chapter.story.aspectRatio || '3:4' });
-    const fileUrl = await uploadImage(result.imageData, result.mimeType);
+    const fileUrl = uploadImageSync(result.imageData, result.mimeType);
 
     await prisma.asset.create({
       data: { ownerUserId: job.userId, storyId: panel.chapter.storyId, chapterId: panel.chapterId, panelId, assetType: 'panel_image', fileUrl, mimeType: result.mimeType, generationModel: 'gemini-3-pro-image-preview', generationParams: { prompt: sanitize(panel.visualPrompt) }, version: 2 },
@@ -307,7 +323,7 @@ export async function processRegenerateChapter(jobId: string) {
 
       try {
         const result = await generateImage({ prompt: panel.visualPrompt, aspectRatio: chapter.story.aspectRatio || '3:4' });
-        const fileUrl = await uploadImage(result.imageData, result.mimeType);
+        const fileUrl = uploadImageSync(result.imageData, result.mimeType);
         await prisma.asset.create({
           data: { ownerUserId: job.userId, storyId: chapter.storyId, chapterId: chapter.id, panelId: panel.id, assetType: 'panel_image', fileUrl, mimeType: result.mimeType, generationModel: 'gemini-3-pro-image-preview', generationParams: { prompt: sanitize(panel.visualPrompt) }, version: 2 },
         });

@@ -1,16 +1,29 @@
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
-import { AuthRequest } from '../routes/auth';
 
-const FREE_STORIES = 1; // First N stories are free
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
+const FREE_GENERATIONS = 1; // First create story is free
 
-export async function freeTierGuard(req: AuthRequest, _res: Response, next: NextFunction) {
-  if (!req.userId) { next(); return; }
+export async function freeTierGuard(req: Request, _res: Response, next: NextFunction) {
+  // Parse userId from token
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) { next(); return; }
 
-  const storyCount = await prisma.story.count({ where: { ownerUserId: req.userId } });
+  let userId: string;
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
+    userId = payload.userId;
+  } catch {
+    next(); return;
+  }
 
-  if (storyCount < FREE_STORIES) {
-    // Skip payment — user still in free tier
+  // Count total completed/running generations
+  const jobCount = await prisma.generationJob.count({
+    where: { userId, status: { in: ['completed', 'running', 'queued'] } },
+  });
+
+  if (jobCount < FREE_GENERATIONS) {
     (req as any).skipPayment = true;
   }
 

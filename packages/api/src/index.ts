@@ -38,7 +38,8 @@ if (process.env.MERCHANT_WALLET) {
   const { freeTierGuard } = require('./middleware/freeTier');
   const { paywall } = require('./middleware/paywall');
   app.use('/v1', freeTierGuard, (req: any, res: any, next: any) => {
-    if (req.skipPayment) return next();
+    if (req.skipPayment) { console.log('[PAY] Free tier, skipping'); return next(); }
+    console.log('[PAY] Paywall active for:', req.method, req.path);
     return paywall(req, res, next);
   });
 }
