@@ -1,2 +1,15 @@
 packages:
-  - 'packages/*'
+  - "packages/*"
+
+onlyBuiltDependencies:
+  - "@google/genai"
+  - "@prisma/client"
+  - "@prisma/engines"
+  - bufferutil
+  - esbuild
+  - keccak
+  - msgpackr-extract
+  - prisma
+  - protobufjs
+  - sharp
+  - utf-8-validate
