@@ -35,6 +35,22 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// ERC-8004 agent discovery
+app.get("/.well-known/agent.json", (_req, res) => {
+  res.json({
+    type: "Agent",
+    name: "MangaWithAI",
+    description: "AI-powered manga creation agent. Creates manga stories from prompts with character consistency via x402 payments on Celo.",
+    endpoints: [
+      { type: "a2a", url: "https://mangawithai.duckdns.org/v1/stories" },
+      { type: "wallet", address: "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8", chainId: 42220 }
+    ],
+    supportedTrust: ["reputation"],
+    capabilities: ["manga-generation", "story-creation", "image-generation"],
+    pricing: { createStory: "0.01 USDC", continueChapter: "0.01 USDC", protocol: "x402" }
+  });
+});
+
 app.use("/v1", authRouter);
 
 // Payment: free tier check + x402 paywall (only if MERCHANT_WALLET set)

@@ -1,0 +1,24 @@
+{
+  "type": "Agent",
+  "name": "MangaWithAI",
+  "description": "AI-powered manga creation agent on Celo. Creates manga stories from prompts with character consistency, powered by Google Gemini. Accepts USDC payments via x402 protocol on Celo Sepolia.",
+  "image": "https://pub-3008a3c9754e4af7af6cb5f92a8b5283.r2.dev/panels/b89c96ea-7bf7-4ebd-ae0a-340ffda21392.png",
+  "endpoints": [
+    {
+      "type": "a2a",
+      "url": "https://mangawithai.duckdns.org/.well-known/agent.json"
+    },
+    {
+      "type": "wallet",
+      "address": "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8",
+      "chainId": 42220
+    }
+  ],
+  "supportedTrust": ["reputation"],
+  "capabilities": ["manga-generation", "story-creation", "image-generation"],
+  "pricing": {
+    "createStory": "$0.01 USDC",
+    "continueChapter": "$0.01 USDC",
+    "protocol": "x402"
+  }
+}
