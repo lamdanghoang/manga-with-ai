@@ -311,24 +311,23 @@ export default function CreatePage() {
                   key={style.slug}
                   type="button"
                   onClick={() => handleStyleSelect(style.slug, style.tier)}
-                  className={`relative p-2.5 border-2 text-left transition-all ${
+                  className={`relative p-2.5 pr-8 border-2 text-left transition-all min-h-[48px] ${
                     isSelected
                       ? "border-primary bg-primary/5 shadow-[2px_2px_0px_0px_var(--color-primary)]"
-                      : "border-on-surface bg-white hover:bg-surface-container"
+                      : isLocked
+                        ? "border-on-surface/50 bg-surface-container/50 opacity-75"
+                        : "border-on-surface bg-white hover:bg-surface-container"
                   }`}
                 >
                   <p className="font-label text-[11px] font-bold uppercase leading-tight">
                     {style.name}
                   </p>
-                  {style.tier === "vip" && (
-                    <span className="absolute top-1 right-1 font-label text-[8px] bg-yellow-400 text-on-surface px-1 font-bold">
-                      VIP
-                    </span>
-                  )}
                   {isLocked && (
-                    <span className="material-symbols-outlined text-xs text-secondary absolute bottom-1 right-1">
-                      lock
-                    </span>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-2 flex flex-col items-center gap-0.5">
+                      <span className="material-symbols-outlined text-sm text-secondary">
+                        lock
+                      </span>
+                    </div>
                   )}
                 </button>
               );

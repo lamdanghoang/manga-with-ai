@@ -19,6 +19,7 @@ model User {
   generationJobs GenerationJob[]
   assets         Asset[]
   subscriptions  UserSubscription[]
+  comments       Comment[]
 
   @@map("users")
 }
@@ -51,6 +52,7 @@ model Story {
   generationJobs GenerationJob[]
   assets         Asset[]
   metrics        PublicStoryMetrics?
+  comments       Comment[]
 
   @@map("stories")
 }
@@ -259,4 +261,17 @@ model UserSubscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_subscriptions")
+}
+
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  storyId   String   @map("story_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  text      String   @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
 }
