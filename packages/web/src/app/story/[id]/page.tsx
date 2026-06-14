@@ -1,14 +1,17 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { RequireAuth } from '@/components/RequireAuth';
+import { MintNFTButton } from '@/components/MintNFTButton';
 
 export default function StoryPage() {
   const { id } = useParams();
   const [story, setStory] = useState<any>(null);
   const [chapters, setChapters] = useState<any[]>([]);
+  const [mintingChapter, setMintingChapter] = useState<string | null>(null);
+  const [metadataURI, setMetadataURI] = useState<string | null>(null);
 
   useEffect(() => {
     api(`/v1/stories/${id}`).then((data: any) => {
@@ -20,6 +23,18 @@ export default function StoryPage() {
   async function handlePublish() {
     await api(`/v1/stories/${id}/publish`, { method: 'POST' });
     setStory({ ...story, visibility: 'public' });
+  }
+
+  async function handleMintPrepare(chapterId: string) {
+    setMintingChapter(chapterId);
+    setMetadataURI(null);
+    try {
+      const res = await api<{ metadataURI: string }>(`/v1/chapters/${chapterId}/metadata`, { method: 'POST' });
+      setMetadataURI(res.metadataURI);
+    } catch (err: any) {
+      console.error('Metadata error:', err.message);
+      setMintingChapter(null);
+    }
   }
 
   return (
@@ -46,6 +61,14 @@ export default function StoryPage() {
                   </div>
                   {ch.pageImageUrl && <img src={ch.pageImageUrl} alt={`Chapter ${ch.chapterNumber}`} className="w-full" />}
                 </div>
+                {/* Mint NFT button per chapter */}
+                {mintingChapter === ch.id && metadataURI ? (
+                  <MintNFTButton metadataURI={metadataURI} />
+                ) : (
+                  <button onClick={() => handleMintPrepare(ch.id)} disabled={mintingChapter === ch.id} className="mt-2 w-full bg-on-surface text-white font-label text-xs py-2 border-2 border-on-surface comic-shadow-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none uppercase disabled:opacity-50">
+                    {mintingChapter === ch.id ? 'PREPARING...' : '🎨 MINT AS NFT'}
+                  </button>
+                )}
               </div>
             ))}
           </div>
