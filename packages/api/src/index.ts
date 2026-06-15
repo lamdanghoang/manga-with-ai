@@ -40,14 +40,47 @@ app.get("/.well-known/agent.json", (_req, res) => {
   res.json({
     type: "Agent",
     name: "MangaWithAI",
-    description: "AI-powered manga creation agent. Creates manga stories from prompts with character consistency via x402 payments on Celo.",
+    description:
+      "AI-powered manga creation agent. Creates manga stories from prompts with character consistency via x402 payments on Celo.",
+    erc8004: {
+      registry: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+      agentId: 9365,
+      chainId: 42220,
+    },
     endpoints: [
       { type: "a2a", url: "https://mangawithai.duckdns.org/v1/stories" },
-      { type: "wallet", address: "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8", chainId: 42220 }
+      {
+        type: "wallet",
+        address: "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8",
+        chainId: 42220,
+      },
     ],
-    supportedTrust: ["reputation"],
-    capabilities: ["manga-generation", "story-creation", "image-generation"],
-    pricing: { createStory: "0.01 USDC", continueChapter: "0.01 USDC", protocol: "x402" }
+    supportedTrust: ["reputation", "erc8004"],
+    capabilities: [
+      "manga-generation",
+      "story-creation",
+      "image-generation",
+      "nft-minting",
+      "marketplace",
+    ],
+    pricing: {
+      createStory: "0.01 USDC",
+      continueChapter: "0.01 USDC",
+      vipSubscription: "1.00 USDC/month",
+      protocol: "x402",
+    },
+    contracts: {
+      mangaNFT: {
+        address: "0xC92AA61585e955D6B12735b5D90bca49BcfFf8FA",
+        chain: "celo-sepolia",
+        chainId: 11142220,
+      },
+      marketplace: {
+        address: "0xD7420dD58505E5cf10Bb9e91Bf4A0B96a8d7498d",
+        chain: "celo-sepolia",
+        chainId: 11142220,
+      },
+    },
   });
 });
 

@@ -1,0 +1,40 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "MangaWithAI",
+  "name_for_model": "manga_with_ai",
+  "description_for_human": "Create AI-generated manga stories on Celo. Mint as NFTs, trade on marketplace.",
+  "description_for_model": "An AI agent on Celo that generates manga from text prompts, handles micropayments via USDC stablecoins using x402 protocol, mints creations as ERC-721 NFTs with royalties, and operates a multi-asset NFT marketplace. Registered as ERC-8004 agent #9365 on Celo mainnet.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://mangawithai.duckdns.org/openapi.json"
+  },
+  "logo_url": "https://pub-3008a3c9754e4af7af6cb5f92a8b5283.r2.dev/panels/b89c96ea-7bf7-4ebd-ae0a-340ffda21392.png",
+  "contact_email": "team@mangawithai.xyz",
+  "legal_info_url": "https://manga-with-ai-web.vercel.app",
+  "agent": {
+    "erc8004_registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+    "agent_id": 9365,
+    "chain_id": 42220,
+    "wallet": "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8",
+    "capabilities": [
+      "manga-generation",
+      "story-creation",
+      "nft-minting",
+      "marketplace",
+      "micropayments"
+    ],
+    "supported_payments": {
+      "protocol": "x402",
+      "assets": ["USDC", "USDT", "USDm"],
+      "chain": "celo-sepolia",
+      "chain_id": 11142220
+    },
+    "contracts": {
+      "manga_nft": "0xC92AA61585e955D6B12735b5D90bca49BcfFf8FA",
+      "marketplace": "0xD7420dD58505E5cf10Bb9e91Bf4A0B96a8d7498d"
+    }
+  }
+}
