@@ -80,8 +80,77 @@ Every user interaction generates real on-chain transactions:
 
 ## For AI Agents
 
+> Full interactive docs: [manga-with-ai-web.vercel.app/api-docs](https://manga-with-ai-web.vercel.app/api-docs)
+
+### Agent Discovery
+
+```bash
+# Machine-readable metadata
+GET https://mangawithai.duckdns.org/.well-known/agent.json
+GET https://manga-with-ai-web.vercel.app/llms.txt
+GET https://manga-with-ai-web.vercel.app/.well-known/ai-plugin.json
+```
+
+### Complete Integration Flow
+
 ```typescript
-// Agent can create manga and pay automatically via x402
+// 1. AUTHENTICATE — sign a nonce with your wallet
+const nonce = `Sign in to MangaWithAI: ${Date.now()}`;
+const signature = await wallet.signMessage(nonce);
+
+const { token } = await fetch(
+  "https://mangawithai.duckdns.org/v1/session/minipay",
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      walletAddress: "0xYourWallet",
+      nonce,
+      signature,
+    }),
+  },
+).then((r) => r.json());
+
+// 2. CREATE MANGA — first one is FREE, no payment needed
+const { jobId, storyId } = await fetch(
+  "https://mangawithai.duckdns.org/v1/stories",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      prompt: "A ninja cat defending Neo-Tokyo from robots",
+      stylePreset: "manga-bw", // free styles: manga-bw, manga-soft-color, high-energy, dark-dramatic
+      panelCount: 4, // 4, 6, or 8 panels
+    }),
+  },
+).then((r) => r.json());
+
+// 3. POLL JOB — wait for AI generation to complete (~30-60s)
+let job;
+do {
+  await new Promise((r) => setTimeout(r, 5000));
+  job = await fetch(`https://mangawithai.duckdns.org/v1/jobs/${jobId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  }).then((r) => r.json());
+} while (job.status === "queued" || job.status === "running");
+
+// 4. GET RESULT
+const story = await fetch(
+  `https://mangawithai.duckdns.org/v1/stories/${storyId}`,
+  {
+    headers: { Authorization: `Bearer ${token}` },
+  },
+).then((r) => r.json());
+
+// story.chapters[0] contains the manga page with AI-generated artwork
+```
+
+### With x402 Payment (after free tier)
+
+```typescript
 import { createPaymentClient } from "n-payment";
 
 const client = createPaymentClient({
@@ -90,18 +159,67 @@ const client = createPaymentClient({
   celo: { payAsset: "USDC" },
 });
 
+// Automatically handles 402 → pay $0.01 USDC → retry
 const res = await client.fetchWithPayment(
   "https://mangawithai.duckdns.org/v1/stories",
   {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({
-      prompt: "A ninja cat in a cyberpunk city",
+      prompt: "A ninja cat",
       stylePreset: "manga-bw",
       panelCount: 4,
     }),
   },
 );
+```
+
+### NFT Minting (on-chain)
+
+```typescript
+import { writeContract } from "wagmi/actions";
+
+// Mint manga as NFT (Celo Sepolia, chain 11142220)
+const tx = await writeContract({
+  address: "0xC92AA61585e955D6B12735b5D90bca49BcfFf8FA", // MangaNFT
+  abi: [
+    {
+      name: "mint",
+      type: "function",
+      stateMutability: "payable",
+      inputs: [
+        { name: "to", type: "address" },
+        { name: "uri", type: "string" },
+      ],
+      outputs: [{ type: "uint256" }],
+    },
+  ],
+  functionName: "mint",
+  args: [recipientAddress, metadataURI],
+  value: 0n,
+});
+```
+
+### Public Endpoints (no auth required)
+
+```bash
+# Read public feed
+GET /v1/public/feed
+
+# Get leaderboard
+GET /v1/leaderboard/creators?period=week&limit=10
+
+# Get styles
+GET /v1/styles
+
+# Read story
+GET /v1/public/stories/{slug}
+
+# Read comments
+GET /v1/public/stories/{slug}/comments
 ```
 
 ## API Endpoints
