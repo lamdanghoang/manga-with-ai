@@ -1,4 +1,4 @@
-# MangaWithAI 🟡
+# MangaWithAI
 
 **AI-Powered Manga Creation Agent on Celo**
 
