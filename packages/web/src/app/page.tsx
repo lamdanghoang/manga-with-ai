@@ -183,33 +183,19 @@ export default function Home() {
 
               {/* Actions bar */}
               <div className="flex items-center justify-between px-4 pb-3">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 font-label text-[11px] text-secondary">
                   <button
                     onClick={(e) => handleLike(s.publicSlug, e)}
-                    className="flex items-center gap-1 text-xs text-secondary hover:text-primary transition-colors"
+                    className="hover:text-primary transition-colors"
                   >
-                    <span className="material-symbols-outlined text-[18px] text-primary">
-                      favorite
-                    </span>{" "}
-                    {s.likeCount || 0}
+                    {s.likeCount || 0} likes
                   </button>
-                  <button
-                    onClick={(e) => toggleComments(s.publicSlug, e)}
-                    className="flex items-center gap-1 text-xs text-secondary hover:text-primary transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      chat_bubble
-                    </span>{" "}
-                    {s.commentCount || 0}
-                  </button>
+                  <span>{s.viewCount || 0} views</span>
                   <button
                     onClick={(e) => handleShare(s.publicSlug, e)}
-                    className="flex items-center gap-1 text-xs text-secondary hover:text-primary transition-colors"
+                    className="hover:text-primary transition-colors"
                   >
-                    <span className="material-symbols-outlined text-[18px]">
-                      share
-                    </span>{" "}
-                    {s.shareCount || 0}
+                    {s.shareCount || 0} shares
                   </button>
                 </div>
                 <Link
@@ -222,66 +208,6 @@ export default function Home() {
                   READ
                 </Link>
               </div>
-
-              {/* Comments section */}
-              {commentOpen === s.publicSlug && (
-                <div className="border-t-2 border-on-surface px-4 py-3 bg-surface-container/30">
-                  {/* Comment input */}
-                  {isAuthed ? (
-                    <div className="flex gap-2 mb-3">
-                      <input
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        onKeyDown={(e) =>
-                          e.key === "Enter" && postComment(s.publicSlug)
-                        }
-                        placeholder="Add a comment..."
-                        maxLength={500}
-                        className="flex-1 border-2 border-on-surface bg-white px-3 py-1.5 text-xs font-label focus:outline-none focus:border-primary"
-                      />
-                      <button
-                        onClick={() => postComment(s.publicSlug)}
-                        disabled={posting || !commentText.trim()}
-                        className="bg-primary text-white font-label text-xs font-bold px-3 py-1.5 border-2 border-on-surface disabled:opacity-50"
-                      >
-                        POST
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-secondary mb-3 font-label">
-                      Connect wallet to comment
-                    </p>
-                  )}
-
-                  {/* Comments list */}
-                  {comments.length === 0 ? (
-                    <p className="text-xs text-secondary font-label">
-                      No comments yet. Be the first!
-                    </p>
-                  ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {comments.map((c) => (
-                        <div key={c.id} className="flex gap-2">
-                          <div className="w-6 h-6 border border-on-surface bg-surface-container flex items-center justify-center shrink-0">
-                            <span className="material-symbols-outlined text-xs text-secondary">
-                              person
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="font-label text-[10px] font-bold text-on-surface">
-                              {c.user.displayName ||
-                                shortAddr(c.user.walletAddress)}
-                            </span>
-                            <p className="text-xs text-on-surface/80 break-words">
-                              {c.text}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           ))}
         </div>

@@ -73,13 +73,13 @@ export default function LeaderboardPage() {
   }, [tab, period]);
 
   return (
-    <main className="pt-6 px-4 max-w-7xl mx-auto">
+    <main className="pt-4 px-2 w-full max-w-[100vw] overflow-x-hidden pb-8">
       {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="font-display text-3xl uppercase tracking-tighter">
+      <div className="flex justify-between items-center mb-3">
+        <h1 className="font-display text-xl uppercase tracking-tighter">
           LEADERBOARD
         </h1>
-        <span className="font-label text-xs bg-yellow-400 text-on-surface px-3 py-1 font-bold border-2 border-on-surface">
+        <span className="font-label text-[10px] bg-yellow-400 text-on-surface px-2 py-0.5 font-bold border-2 border-on-surface">
           TOP CREATORS
         </span>
       </div>
@@ -109,22 +109,22 @@ export default function LeaderboardPage() {
       </div>
 
       {/* Period filter */}
-      <div className="flex gap-1.5 mb-5">
+      <div className="flex flex-wrap gap-1.5 mb-4">
         {(["week", "month", "all"] as Period[]).map((p) => (
           <button
             key={p}
             onClick={() => setPeriod(p)}
-            className={`font-label text-[11px] font-bold uppercase px-3 py-1.5 border-2 border-on-surface transition-colors ${
+            className={`font-label text-[10px] font-bold uppercase px-2 py-1 border-2 border-on-surface transition-colors ${
               period === p
                 ? "bg-primary text-white"
                 : "bg-surface-container text-on-surface"
             }`}
           >
             {p === "week"
-              ? "THIS WEEK"
+              ? "WEEK"
               : p === "month"
-                ? "THIS MONTH"
-                : "ALL TIME"}
+                ? "MONTH"
+                : "ALL"}
           </button>
         ))}
       </div>
@@ -157,17 +157,17 @@ export default function LeaderboardPage() {
             creators.map((c) => (
               <div
                 key={c.userId}
-                className={`border-3 border-on-surface bg-white shadow-[3px_3px_0px_0px_#1a1c1c] p-3 flex items-center gap-3 ${
+                className={`border-2 border-on-surface bg-white p-2.5 flex items-center gap-2 ${
                   c.rank <= 3 ? "border-yellow-500" : ""
                 }`}
               >
                 {/* Rank */}
-                <div className="font-display text-xl w-10 text-center shrink-0">
+                <div className="font-display text-base w-8 text-center shrink-0">
                   {getRankBadge(c.rank)}
                 </div>
 
                 {/* Avatar */}
-                <div className="w-10 h-10 border-2 border-on-surface bg-surface-container flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-8 h-8 border-2 border-on-surface bg-surface-container flex items-center justify-center shrink-0 overflow-hidden rounded-full">
                   {c.avatarUrl ? (
                     <img
                       src={c.avatarUrl}
@@ -175,7 +175,7 @@ export default function LeaderboardPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="material-symbols-outlined text-lg text-secondary">
+                    <span className="material-symbols-outlined text-sm text-secondary">
                       person
                     </span>
                   )}
@@ -183,20 +183,19 @@ export default function LeaderboardPage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-display text-sm uppercase truncate">
+                  <p className="font-display text-xs uppercase truncate">
                     {c.displayName || shortAddress(c.walletAddress)}
                   </p>
-                  <p className="font-label text-[10px] text-secondary">
-                    {c.totalStories} stories · {c.totalLikes} likes ·{" "}
-                    {c.totalViews} views
+                  <p className="font-label text-[9px] text-secondary">
+                    {c.totalStories} stories · {c.totalLikes}♥ · {c.totalViews}👁
                   </p>
                 </div>
 
                 {/* Score */}
                 <div className="text-right shrink-0">
-                  <p className="font-display text-lg text-primary">{c.score}</p>
-                  <p className="font-label text-[9px] text-secondary uppercase">
-                    POINTS
+                  <p className="font-display text-base text-primary">{c.score}</p>
+                  <p className="font-label text-[8px] text-secondary uppercase">
+                    PTS
                   </p>
                 </div>
               </div>
@@ -220,15 +219,15 @@ export default function LeaderboardPage() {
               <Link
                 key={s.storyId}
                 href={s.slug ? `/read/${s.slug}` : "#"}
-                className="border-3 border-on-surface bg-white shadow-[3px_3px_0px_0px_#1a1c1c] p-3 flex items-center gap-3 hover:-translate-y-0.5 transition-all"
+                className="border-2 border-on-surface bg-white p-2.5 flex items-center gap-2"
               >
                 {/* Rank */}
-                <div className="font-display text-xl w-10 text-center shrink-0">
+                <div className="font-display text-base w-8 text-center shrink-0">
                   {getRankBadge(s.rank)}
                 </div>
 
                 {/* Cover */}
-                <div className="w-12 h-16 border-2 border-on-surface bg-surface-container shrink-0 overflow-hidden">
+                <div className="w-10 h-14 border-2 border-on-surface bg-surface-container shrink-0 overflow-hidden">
                   {s.coverImageUrl ? (
                     <img
                       src={s.coverImageUrl}
@@ -237,7 +236,7 @@ export default function LeaderboardPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <span className="material-symbols-outlined text-base text-secondary/30">
+                      <span className="material-symbols-outlined text-sm text-secondary/30">
                         auto_stories
                       </span>
                     </div>
@@ -246,24 +245,23 @@ export default function LeaderboardPage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-display text-sm uppercase truncate">
+                  <p className="font-display text-xs uppercase truncate">
                     {s.title}
                   </p>
-                  <p className="font-label text-[10px] text-secondary">
-                    by{" "}
+                  <p className="font-label text-[9px] text-secondary truncate">
                     {s.creator.displayName ||
                       shortAddress(s.creator.walletAddress)}
                   </p>
-                  <p className="font-label text-[10px] text-secondary">
-                    {s.totalChapters} ch · ❤️ {s.likes} · 👁 {s.views}
+                  <p className="font-label text-[9px] text-secondary">
+                    {s.totalChapters}ch · ♥{s.likes} · 👁{s.views}
                   </p>
                 </div>
 
                 {/* Score */}
                 <div className="text-right shrink-0">
-                  <p className="font-display text-lg text-primary">{s.score}</p>
-                  <p className="font-label text-[9px] text-secondary uppercase">
-                    POINTS
+                  <p className="font-display text-base text-primary">{s.score}</p>
+                  <p className="font-label text-[8px] text-secondary uppercase">
+                    PTS
                   </p>
                 </div>
               </Link>
