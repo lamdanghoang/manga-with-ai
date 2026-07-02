@@ -23,7 +23,7 @@ export const MANGA_NFT_ABI = [
   {
     name: "mint",
     type: "function",
-    stateMutability: "payable",
+    stateMutability: "nonpayable",
     inputs: [
       { name: "to", type: "address" },
       { name: "uri", type: "string" },
@@ -33,7 +33,7 @@ export const MANGA_NFT_ABI = [
   {
     name: "batchMint",
     type: "function",
-    stateMutability: "payable",
+    stateMutability: "nonpayable",
     inputs: [
       { name: "to", type: "address" },
       { name: "uris", type: "string[]" },
@@ -104,6 +104,20 @@ export const MANGA_NFT_ABI = [
     stateMutability: "view",
     inputs: [],
     outputs: [{ type: "uint256" }],
+  },
+  {
+    name: "feeToken",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "address" }],
+  },
+  {
+    name: "feeRecipient",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "address" }],
   },
   // Events
   {

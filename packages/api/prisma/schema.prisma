@@ -40,6 +40,7 @@ model Story {
   isNsfw                  Boolean  @default(false) @map("is_nsfw")
   moderationStatus        String   @default("approved") @map("moderation_status") @db.VarChar(20)
   latestStoryBibleVersion Int      @default(1) @map("latest_story_bible_version")
+  mintTxHash              String?  @map("mint_tx_hash")
   createdAt               DateTime @default(now()) @map("created_at")
   updatedAt               DateTime @default(now()) @updatedAt @map("updated_at")
 

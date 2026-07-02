@@ -643,4 +643,49 @@ router.post('/chapters/:chapterId/minted', authMiddleware, async (req: AuthReque
   res.json({ success: true });
 });
 
+// Dynamic NFT metadata for story (used as tokenURI)
+router.get('/nft/:storyId', async (req, res) => {
+  const story = await prisma.story.findFirst({ where: { id: req.params.storyId as string } });
+  if (!story) { res.status(404).json({ error: 'Not found' }); return; }
+
+  const chapters = await prisma.chapter.findMany({ where: { storyId: story.id }, orderBy: { chapterNumber: 'asc' } });
+  const assets = await prisma.asset.findMany({ where: { storyId: story.id, assetType: 'chapter_page', isActive: true }, orderBy: { createdAt: 'asc' } });
+
+  res.json({
+    name: story.title,
+    description: story.synopsis || `AI-generated manga story by MangaWithAI.`,
+    image: assets[0]?.fileUrl || '',
+    attributes: [
+      { trait_type: 'Chapters', value: chapters.length },
+      { trait_type: 'Style', value: story.stylePreset },
+      { trait_type: 'Generator', value: 'MangaWithAI' },
+      { trait_type: 'Status', value: story.status },
+    ],
+    chapters: chapters.map((ch, i) => ({
+      chapterNumber: ch.chapterNumber,
+      title: ch.title,
+      image: assets[i]?.fileUrl || null,
+    })),
+  });
+});
+
+// Mint story — return metadata URL
+router.post('/stories/:storyId/mint-metadata', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const story = await prisma.story.findFirst({ where: { id: req.params.storyId as string, ownerUserId: req.userId! } });
+  if (!story) { res.status(404).json({ error: 'Not found' }); return; }
+
+  const metadataURI = `https://mangawithai.duckdns.org/v1/nft/${story.id}`;
+  res.json({ metadataURI });
+});
+
+// Mark story as minted
+router.post('/stories/:storyId/minted', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const { txHash } = req.body;
+  const story = await prisma.story.findFirst({ where: { id: req.params.storyId as string, ownerUserId: req.userId! } });
+  if (!story) { res.status(404).json({ error: 'Not found' }); return; }
+
+  await prisma.story.update({ where: { id: story.id }, data: { mintTxHash: txHash } as any });
+  res.json({ success: true });
+});
+
 export default router;

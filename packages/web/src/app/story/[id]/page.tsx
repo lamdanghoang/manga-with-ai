@@ -10,12 +10,14 @@ export default function StoryPage() {
   const { id } = useParams();
   const [story, setStory] = useState<any>(null);
   const [chapters, setChapters] = useState<any[]>([]);
-  const [mintingChapter, setMintingChapter] = useState<string | null>(null);
+  const [mintingStory, setMintingStory] = useState(false);
   const [metadataURI, setMetadataURI] = useState<string | null>(null);
+  const [storyMinted, setStoryMinted] = useState(false);
 
   useEffect(() => {
     api(`/v1/stories/${id}`).then((data: any) => {
       setStory(data.story);
+      setStoryMinted(!!data.story.mintTxHash);
       Promise.all(data.chapters.map((ch: any) => api(`/v1/stories/${id}/chapters/${ch.id}`))).then(setChapters);
     }).catch(console.error);
   }, [id]);
@@ -25,15 +27,15 @@ export default function StoryPage() {
     setStory({ ...story, visibility: 'public' });
   }
 
-  async function handleMintPrepare(chapterId: string) {
-    setMintingChapter(chapterId);
+  async function handleMintPrepare() {
+    setMintingStory(true);
     setMetadataURI(null);
     try {
-      const res = await api<{ metadataURI: string }>(`/v1/chapters/${chapterId}/metadata`, { method: 'POST' });
+      const res = await api<{ metadataURI: string }>(`/v1/stories/${id}/mint-metadata`, { method: 'POST' });
       setMetadataURI(res.metadataURI);
     } catch (err: any) {
       console.error('Metadata error:', err.message);
-      setMintingChapter(null);
+      setMintingStory(false);
     }
   }
 
@@ -51,7 +53,7 @@ export default function StoryPage() {
       {/* Chapters - horizontal snap scroll */}
       {chapters.length > 0 && (
         <>
-          <p className="font-label text-xs text-secondary uppercase mb-2 tracking-wider">← Swipe chapters →</p>
+          <p className="font-label text-xs text-secondary uppercase mb-2 tracking-wider text-center">← Swipe chapters →</p>
           <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4">
             {chapters.map((ch) => (
               <div key={ch.id} className="snap-center shrink-0 w-full">
@@ -61,20 +63,6 @@ export default function StoryPage() {
                   </div>
                   {ch.pageImageUrl && <img src={ch.pageImageUrl} alt={`Chapter ${ch.chapterNumber}`} className="w-full" />}
                 </div>
-                {/* Mint NFT button per chapter */}
-                {ch.mintTxHash ? (
-                  <p className="mt-2 text-center font-label text-xs text-green-600 uppercase">✓ MINTED</p>
-                ) : mintingChapter === ch.id && metadataURI ? (
-                  <MintNFTButton metadataURI={metadataURI} onMinted={(_tokenId: bigint, txHash: string) => {
-                    api(`/v1/chapters/${ch.id}/minted`, { method: 'POST', body: JSON.stringify({ txHash }) }).catch(() => {});
-                    setChapters(chapters.map(c => c.id === ch.id ? { ...c, mintTxHash: txHash } : c));
-                    setMintingChapter(null);
-                  }} />
-                ) : (
-                  <button onClick={() => handleMintPrepare(ch.id)} disabled={mintingChapter === ch.id} className="mt-2 w-full bg-on-surface text-white font-label text-xs py-2 border-2 border-on-surface comic-shadow-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none uppercase disabled:opacity-50">
-                    {mintingChapter === ch.id ? 'PREPARING...' : '🎨 MINT AS NFT'}
-                  </button>
-                )}
               </div>
             ))}
           </div>
@@ -90,6 +78,28 @@ export default function StoryPage() {
       <Link href={`/story/${id}/continue`} className="block mt-6 w-full bg-primary text-white font-display text-lg text-center border-4 border-on-surface px-6 py-4 comic-shadow hover:bg-primary-container active:translate-x-1 active:translate-y-1 active:shadow-none transition-all uppercase">
         CONTINUE STORY →
       </Link>
+
+      {/* Save story as collectible */}
+      {!storyMinted && !metadataURI && (
+        <button onClick={handleMintPrepare} disabled={mintingStory} className="block mt-3 w-full bg-on-surface text-white font-label text-sm text-center border-4 border-on-surface px-6 py-3 comic-shadow active:translate-x-1 active:translate-y-1 active:shadow-none transition-all uppercase disabled:opacity-50">
+          {mintingStory ? 'SAVING...' : '✨ SAVE AS COLLECTIBLE'}
+        </button>
+      )}
+      {metadataURI && !storyMinted && (
+        <div className="mt-3">
+          <MintNFTButton metadataURI={metadataURI} onMinted={(_tokenId: bigint, txHash: string) => {
+            api(`/v1/stories/${id}/minted`, { method: 'POST', body: JSON.stringify({ txHash }) }).catch(() => {});
+            setStoryMinted(true);
+            setMintingStory(false);
+          }} />
+        </div>
+      )}
+      {storyMinted && (
+        <div className="mt-3 flex items-center justify-center gap-2 py-2 px-3 border-2 border-green-200 bg-green-50 rounded">
+          <span className="material-symbols-outlined text-green-600 text-base">bookmark_added</span>
+          <span className="font-label text-xs text-green-700 font-bold uppercase">Saved as collectible</span>
+        </div>
+      )}
 
       {/* Publish */}
       {story.visibility !== 'public' && (
