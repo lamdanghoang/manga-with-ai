@@ -13,6 +13,7 @@ export default function PublicReaderPage() {
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [visibleComments, setVisibleComments] = useState(3);
   const { isAuthed } = useAuth();
   const API = getApiUrl();
 
@@ -58,7 +59,14 @@ export default function PublicReaderPage() {
       .catch(() => {});
   }, [slug]);
 
-  if (!story) return <div className="p-4 text-center font-label text-secondary">Loading...</div>;
+  if (!story) return (
+    <main className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-10 h-10 border-4 border-on-surface border-t-primary rounded-none animate-spin mx-auto mb-3"></div>
+        <p className="font-label text-xs text-secondary uppercase">Loading story...</p>
+      </div>
+    </main>
+  );
 
   return (
     <main className="pt-3 px-2 pb-8 w-full max-w-[100vw] overflow-x-hidden">
@@ -68,88 +76,101 @@ export default function PublicReaderPage() {
         {story.synopsis && <p className="text-xs text-secondary mt-1 line-clamp-2">{story.synopsis}</p>}
       </div>
 
-      {/* Like / Share */}
-      <div className="flex gap-2 mb-3">
-        <button onClick={handleLike} className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 border-2 border-on-surface font-label text-[11px] uppercase font-bold ${liked ? 'bg-red-100 text-red-600' : 'bg-white text-on-surface'}`}>
-          <span className="material-symbols-outlined text-sm">favorite</span>{liked ? 'Liked' : 'Like'}
-        </button>
-        <button onClick={handleShare} className="flex-1 flex items-center justify-center gap-1 px-2 py-2 border-2 border-on-surface bg-white font-label text-[11px] uppercase font-bold">
-          <span className="material-symbols-outlined text-sm">share</span>{copied ? 'Copied!' : 'Share'}
-        </button>
-      </div>
-
-      {/* Chapters */}
+      {/* Chapters - swipe horizontal */}
       {chapters.length > 0 && (
-        <div className="space-y-3">
+        <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide mb-3">
           {chapters.map((ch) => (
-            <div key={ch.id} className="border-2 border-on-surface bg-white overflow-hidden">
-              <div className="bg-on-surface text-white px-2 py-1 font-label text-[11px] font-bold uppercase">
-                Ch.{ch.chapterNumber}{ch.title ? ` — ${ch.title}` : ''}
+            <div key={ch.id} className="snap-center shrink-0 w-full">
+              <div className="border-2 border-on-surface bg-white overflow-hidden">
+                <div className="bg-on-surface text-white px-2 py-1 font-label text-[11px] font-bold uppercase">
+                  Ch.{ch.chapterNumber}{ch.title ? ` — ${ch.title}` : ''}
+                </div>
+                {ch.pageImageUrl && (
+                  <img
+                    src={ch.pageImageUrl}
+                    alt={`Chapter ${ch.chapterNumber}`}
+                    className="w-full h-auto block"
+                  />
+                )}
               </div>
-              {ch.pageImageUrl && (
-                <img
-                  src={ch.pageImageUrl}
-                  alt={`Chapter ${ch.chapterNumber}`}
-                  className="w-full h-auto block"
-                />
-              )}
             </div>
           ))}
         </div>
       )}
 
+      {chapters.length > 1 && (
+        <p className="text-center font-label text-[10px] text-secondary uppercase mb-3">← Swipe chapters →</p>
+      )}
+
       {chapters.length === 0 && (
-        <div className="border-2 border-dashed border-secondary/50 p-6 text-center bg-surface-container-low">
+        <div className="border-2 border-dashed border-secondary/50 p-6 text-center bg-surface-container-low mb-3">
           <p className="font-label text-xs text-secondary uppercase font-bold">No chapters available</p>
         </div>
       )}
 
-      {/* Comments */}
-      <div className="mt-4 border-2 border-on-surface bg-white p-3">
-        <h2 className="font-display text-base uppercase mb-2">Comments</h2>
+      {/* Like / Comment / Share - single row */}
+      <div className="flex items-center gap-3 mb-2 px-1">
+        <button onClick={handleLike} className={`flex items-center gap-1 font-label text-[11px] ${liked ? 'text-red-600' : 'text-on-surface'}`}>
+          <span className="material-symbols-outlined text-[18px]">{liked ? 'favorite' : 'favorite_border'}</span>
+          <span>{liked ? 'Liked' : 'Like'}</span>
+        </button>
+        <button onClick={() => document.getElementById('comment-input')?.focus()} className="flex items-center gap-1 font-label text-[11px] text-on-surface">
+          <span className="material-symbols-outlined text-[18px]">chat_bubble_outline</span>
+          <span>Comment</span>
+        </button>
+        <button onClick={handleShare} className="flex items-center gap-1 font-label text-[11px] text-on-surface ml-auto">
+          <span className="material-symbols-outlined text-[18px]">share</span>
+          <span>{copied ? 'Copied!' : 'Share'}</span>
+        </button>
+      </div>
 
+      {/* Comment input */}
+      <div className="border-t border-on-surface/20 border-b border-b-on-surface/20 py-2 mb-3">
         {isAuthed ? (
-          <div className="flex gap-1 mb-3">
+          <div className="flex gap-2 items-center">
             <input
+              id="comment-input"
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && postComment()}
               placeholder="Add a comment..."
               maxLength={500}
-              className="flex-1 min-w-0 border-2 border-on-surface bg-surface-container px-2 py-1.5 text-xs font-label focus:outline-none focus:border-primary"
+              className="flex-1 min-w-0 bg-transparent text-xs font-label py-1 focus:outline-none placeholder:text-secondary"
             />
             <button
               onClick={postComment}
               disabled={posting || !commentText.trim()}
-              className="bg-primary text-white font-label text-[10px] font-bold px-2 py-1.5 border-2 border-on-surface disabled:opacity-50 shrink-0"
+              className="font-label text-[11px] font-bold text-primary disabled:opacity-40 shrink-0"
             >
-              POST
+              Post
             </button>
           </div>
         ) : (
-          <p className="text-xs text-secondary mb-3 font-label">Connect to comment</p>
-        )}
-
-        {comments.length === 0 ? (
-          <p className="text-xs text-secondary font-label">No comments yet. Be the first!</p>
-        ) : (
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {comments.map((c) => (
-              <div key={c.id} className="flex gap-2">
-                <div className="w-6 h-6 border border-on-surface bg-surface-container rounded-full flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[10px] text-secondary">person</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="font-label text-[10px] font-bold text-on-surface">
-                    {c.user?.displayName || `${c.user?.walletAddress?.slice(0, 6)}...${c.user?.walletAddress?.slice(-4)}`}
-                  </span>
-                  <p className="text-[11px] text-on-surface/80 break-words">{c.text}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <p className="text-xs text-secondary font-label">Connect wallet to comment</p>
         )}
       </div>
+
+      {/* Comments list */}
+      {comments.length > 0 && (
+        <div className="space-y-0 mb-3">
+          {comments.slice(0, visibleComments).map((c, i) => (
+            <div key={c.id} className={`border-b border-on-surface/10 pb-2 px-1 ${i === 0 ? 'pt-0' : 'pt-2'}`}>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="font-label text-[11px] font-bold text-on-surface">
+                  {c.user?.displayName || `${c.user?.walletAddress?.slice(0, 6)}...${c.user?.walletAddress?.slice(-4)}`}
+                </span>
+                <span className="font-label text-[9px] text-secondary">2h ago</span>
+              </div>
+              <p className="text-[12px] text-on-surface/80 break-words">{c.text}</p>
+            </div>
+          ))}
+          {comments.length > visibleComments && (
+            <button onClick={() => setVisibleComments(prev => prev + 3)} className="w-full pt-2 text-center font-label text-[11px] text-secondary">
+              View more
+            </button>
+          )}
+        </div>
+      )}
     </main>
   );
 }
