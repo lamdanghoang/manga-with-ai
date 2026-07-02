@@ -26,10 +26,12 @@ async function main() {
   // 1. Deploy MangaNFT
   console.log("\n1. Deploying MangaNFT...");
   const MangaNFT = await ethers.getContractFactory("MangaNFT");
-  const nft = await MangaNFT.deploy();
+  const nft = await MangaNFT.deploy(tokens.USDC, deployer.address);
   await nft.waitForDeployment();
   const nftAddress = await nft.getAddress();
   console.log("   MangaNFT deployed to:", nftAddress);
+  console.log("   Fee token (USDC):", tokens.USDC);
+  console.log("   Fee recipient:", deployer.address);
 
   // 2. Deploy MangaMarketplace
   console.log("\n2. Deploying MangaMarketplace...");
