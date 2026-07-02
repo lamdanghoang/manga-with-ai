@@ -3,23 +3,49 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getApiUrl, api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { CONTRACTS, MARKETPLACE_ABI } from '@manga-with-ai/shared';
+import { celoSepolia } from '@/lib/wagmi';
 
 export default function PublicReaderPage() {
   const { slug } = useParams();
   const [story, setStory] = useState<any>(null);
   const [chapters, setChapters] = useState<any[]>([]);
   const [liked, setLiked] = useState(false);
+  const [liking, setLiking] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
   const [copied, setCopied] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState('');
   const [posting, setPosting] = useState(false);
   const [visibleComments, setVisibleComments] = useState(3);
   const { isAuthed } = useAuth();
+  const { address } = useAccount();
+  const { writeContractAsync } = useWriteContract();
   const API = getApiUrl();
+  const contracts = CONTRACTS.celoSepolia;
 
   async function handleLike() {
-    await fetch(`${API}/v1/public/stories/${slug}/like`, { method: 'POST' });
-    setLiked(true);
+    if (liked || liking || !address) return;
+    setLiking(true);
+    try {
+      // On-chain like via marketplace contract
+      await writeContractAsync({
+        address: contracts.marketplace,
+        abi: MARKETPLACE_ABI,
+        functionName: 'like',
+        args: [BigInt(story.nftTokenId || 0)],
+        chainId: celoSepolia.id,
+      });
+      // Tx success → update UI
+      setLiked(true);
+      setLikeCount(prev => prev + 1);
+      // Also update off-chain counter
+      fetch(`${API}/v1/public/stories/${slug}/like`, { method: 'POST' }).catch(() => {});
+    } catch (err: any) {
+      console.error('Like failed:', err.shortMessage || err.message);
+    }
+    setLiking(false);
   }
 
   async function handleShare() {
@@ -48,6 +74,7 @@ export default function PublicReaderPage() {
       .then(r => r.json())
       .then((data) => {
         setStory(data);
+        setLikeCount(data.metrics?.likes || 0);
         if (data.chapters?.length) {
           Promise.all(data.chapters.map((ch: any) => fetch(`${API}/v1/public/stories/${slug}/chapters/${ch.id}`).then(r => r.json()))).then(setChapters);
         }
@@ -110,9 +137,10 @@ export default function PublicReaderPage() {
 
       {/* Like / Comment / Share - single row */}
       <div className="flex items-center gap-3 mb-2 px-1">
-        <button onClick={handleLike} className={`flex items-center gap-1 font-label text-[11px] ${liked ? 'text-red-600' : 'text-on-surface'}`}>
+        <button onClick={handleLike} disabled={liked || liking || !address || !story?.mintTxHash} className={`flex items-center gap-1 font-label text-[11px] disabled:opacity-50 ${liked ? 'text-red-600' : 'text-on-surface'}`}>
           <span className="material-symbols-outlined text-[18px]">{liked ? 'favorite' : 'favorite_border'}</span>
-          <span>{liked ? 'Liked' : 'Like'}</span>
+          <span>{liking ? '...' : liked ? 'Liked' : 'Like'}</span>
+          {likeCount > 0 && <span className="text-[10px] text-secondary">({likeCount})</span>}
         </button>
         <button onClick={() => document.getElementById('comment-input')?.focus()} className="flex items-center gap-1 font-label text-[11px] text-on-surface">
           <span className="material-symbols-outlined text-[18px]">chat_bubble_outline</span>
