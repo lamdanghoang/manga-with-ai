@@ -1,6 +1,10 @@
 packages:
   - "packages/*"
 
+allowBuilds:
+  '@google/genai': true
+  msgpackr-extract: true
+
 onlyBuiltDependencies:
   - "@google/genai"
   - "@prisma/client"
