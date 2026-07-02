@@ -10,15 +10,19 @@ export default function LibraryPage() {
   const { isAuthed, connectWallet, signingIn } = useAuth();
   const [tab, setTab] = useState<Tab>("stories");
   const [stories, setStories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isAuthed) {
       setStories([]);
+      setLoading(false);
       return;
     }
+    setLoading(true);
     api<{ items: any[] }>("/v1/stories")
       .then((d) => setStories(d.items || []))
-      .catch(() => setStories([]));
+      .catch(() => setStories([]))
+      .finally(() => setLoading(false));
   }, [isAuthed]);
 
   return (
@@ -46,7 +50,14 @@ export default function LibraryPage() {
         </button>
       </div>
 
-      {!isAuthed ? (
+      {loading && isAuthed ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="w-10 h-10 border-4 border-on-surface border-t-primary rounded-none animate-spin mx-auto mb-3"></div>
+            <p className="font-label text-xs text-secondary uppercase">Loading library...</p>
+          </div>
+        </div>
+      ) : !isAuthed ? (
         <div className="border-4 border-on-surface bg-white shadow-[6px_6px_0px_0px_#1a1c1c] p-6 text-center">
           <p className="font-display text-lg uppercase mb-2">Your library</p>
           <p className="text-sm text-secondary mb-4">

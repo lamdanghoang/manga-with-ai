@@ -131,15 +131,11 @@ export default function LeaderboardPage() {
 
       {/* Content */}
       {loading ? (
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="border-3 border-on-surface bg-white shadow-[3px_3px_0px_0px_#1a1c1c] p-4 animate-pulse"
-            >
-              <div className="h-5 bg-surface-container rounded w-3/4" />
-            </div>
-          ))}
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="w-10 h-10 border-4 border-on-surface border-t-primary rounded-none animate-spin mx-auto mb-3"></div>
+            <p className="font-label text-xs text-secondary uppercase">Loading rankings...</p>
+          </div>
         </div>
       ) : tab === "creators" ? (
         <div className="space-y-2.5">

@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function Home() {
   const [stories, setStories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"latest" | "popular">("latest");
   const [commentOpen, setCommentOpen] = useState<string | null>(null);
   const [comments, setComments] = useState<any[]>([]);
@@ -18,7 +19,8 @@ export default function Home() {
     fetch(`${API}/v1/public/feed`)
       .then((r) => r.json())
       .then((d) => setStories(d.items || []))
-      .catch(() => setStories([]));
+      .catch(() => setStories([]))
+      .finally(() => setLoading(false));
   }, []);
 
   const sorted =
@@ -97,6 +99,17 @@ export default function Home() {
 
   function shortAddr(addr: string) {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-on-surface border-t-primary rounded-none animate-spin mx-auto mb-3"></div>
+          <p className="font-label text-xs text-secondary uppercase">Loading feed...</p>
+        </div>
+      </main>
+    );
   }
 
   return (
