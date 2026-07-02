@@ -7,3 +7,8 @@ dist
 docs/
 packages/api/uploads/
 design/
+
+# Hardhat
+packages/contracts/artifacts/
+packages/contracts/cache/
+packages/contracts/typechain-types/
