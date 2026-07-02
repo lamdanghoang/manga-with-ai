@@ -2,8 +2,8 @@
 export const CONTRACTS = {
   // Celo Sepolia (testnet) - update after deploy
   celoSepolia: {
-    mangaNFT: "0xC92AA61585e955D6B12735b5D90bca49BcfFf8FA" as `0x${string}`,
-    marketplace: "0xD7420dD58505E5cf10Bb9e91Bf4A0B96a8d7498d" as `0x${string}`,
+    mangaNFT: "0xA55C22e2f4bbfEaF3962eE9fd4D7100CCACaF010" as `0x${string}`,
+    marketplace: "0x8CbC3acc834B47eAe10096c81DdFA2B09ccDEC18" as `0x${string}`,
     usdc: "0x01C5C0122039549AD1493B8220cABEdD739BC44E" as `0x${string}`,
     usdt: "0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e" as `0x${string}`,
     usdm: "0x765DE816845861e75A25fCA122bb6898B8B1282a" as `0x${string}`,
