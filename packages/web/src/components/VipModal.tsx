@@ -6,6 +6,7 @@ import {
   useWaitForTransactionReceipt,
   useReadContract,
   useSwitchChain,
+  usePublicClient,
 } from "wagmi";
 import { parseUnits } from "viem";
 import { celoSepolia } from "@/lib/wagmi";
@@ -59,6 +60,7 @@ export function VipModal({ isOpen, onClose, onSuccess }: VipModalProps) {
 
   const { writeContractAsync } = useWriteContract();
   const { switchChainAsync } = useSwitchChain();
+  const publicClient = usePublicClient({ chainId: celoSepolia.id });
 
   async function handlePurchase() {
     if (!address) return;
@@ -78,7 +80,13 @@ export function VipModal({ isOpen, onClose, onSuccess }: VipModalProps) {
 
       setStep("confirming");
 
-      // Register subscription on backend
+      // Wait for on-chain confirmation before notifying backend
+      const receipt = await publicClient!.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== "success") {
+        throw new Error("Transaction reverted on-chain");
+      }
+
+      // Register subscription on backend (backend will also verify on-chain)
       await api("/v1/user/subscribe", {
         method: "POST",
         body: JSON.stringify({ paymentTx: txHash, plan: "vip" }),

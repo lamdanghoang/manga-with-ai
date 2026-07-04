@@ -77,6 +77,52 @@ router.post(
       return;
     }
 
+    // Verify payment on-chain
+    try {
+      const { createPublicClient, http, defineChain } = await import("viem");
+      const celoSepolia = defineChain({
+        id: 11142220,
+        name: "Celo Sepolia",
+        nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
+        rpcUrls: { default: { http: ["https://forno.celo-sepolia.celo-testnet.org"] } },
+        testnet: true,
+      });
+
+      const client = createPublicClient({ chain: celoSepolia, transport: http() });
+      const receipt = await client.getTransactionReceipt({ hash: paymentTx as `0x${string}` });
+
+      if (!receipt || receipt.status !== "success") {
+        res.status(400).json({ error: "Transaction failed or not found" });
+        return;
+      }
+
+      // Verify it's a USDC transfer to merchant for >= $1
+      const USDC = "0x01c5c0122039549ad1493b8220cabedd739bc44e";
+      const MERCHANT = (process.env.MERCHANT_WALLET || "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8").toLowerCase();
+      const REQUIRED = BigInt(1000000); // $1 USDC (6 decimals)
+
+      const transferLog = receipt.logs.find(
+        (log) =>
+          log.address.toLowerCase() === USDC &&
+          log.topics[2]?.toLowerCase().includes(MERCHANT.slice(2)),
+      );
+
+      if (!transferLog) {
+        res.status(400).json({ error: "No USDC transfer to merchant found in tx" });
+        return;
+      }
+
+      const amount = BigInt(transferLog.data);
+      if (amount < REQUIRED) {
+        res.status(400).json({ error: `Insufficient amount: need $1 USDC, got ${Number(amount) / 1e6}` });
+        return;
+      }
+    } catch (verifyErr: any) {
+      // If verification fails due to network, reject
+      res.status(400).json({ error: "Could not verify payment: " + (verifyErr.message || "").slice(0, 100) });
+      return;
+    }
+
     // Create subscription (30 days)
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     const sub = await prisma.userSubscription.create({
