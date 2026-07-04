@@ -72,8 +72,84 @@ export default function LeaderboardPage() {
     }
   }, [tab, period]);
 
+  // Calculate countdown to next weekly reset (Monday 00:00 UTC)
+  function getWeeklyCountdown() {
+    const now = new Date();
+    const daysUntilMonday = (7 - now.getUTCDay() + 1) % 7 || 7;
+    const nextMonday = new Date(now);
+    nextMonday.setUTCDate(now.getUTCDate() + daysUntilMonday);
+    nextMonday.setUTCHours(0, 0, 0, 0);
+    const diff = nextMonday.getTime() - now.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    return `${days}d ${hours}h`;
+  }
+
+  const top3 = tab === "creators" ? creators.slice(0, 3) : [];
+
   return (
     <main className="pt-4 px-2 w-full max-w-[100vw] overflow-x-hidden pb-8">
+      {/* Prize Panel */}
+      <div className="border-2 border-yellow-500 bg-gradient-to-b from-yellow-50 to-white p-3 mb-4">
+        <div className="text-center mb-3">
+          <p className="font-display text-sm uppercase text-yellow-700">Weekly Prize Pool</p>
+          <p className="font-display text-2xl text-on-surface">10 USDC</p>
+        </div>
+
+        {/* Podium */}
+        <div className="flex items-end justify-center gap-2 mb-3">
+          {/* 2nd place */}
+          <div className="flex flex-col items-center">
+            <div className="w-10 h-10 rounded-full border-2 border-yellow-400 bg-surface-container overflow-hidden flex items-center justify-center">
+              {top3[1] ? (
+                <img src={`https://api.dicebear.com/9.x/adventurer/svg?seed=${top3[1].walletAddress}`} alt="" className="w-full h-full" />
+              ) : (
+                <span className="text-xs text-secondary">?</span>
+              )}
+            </div>
+            <div className="bg-gray-200 w-14 h-12 flex flex-col items-center justify-center mt-1 border border-on-surface">
+              <span className="text-sm">🥈</span>
+              <span className="font-label text-[8px] font-bold">$2</span>
+            </div>
+          </div>
+
+          {/* 1st place */}
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 rounded-full border-2 border-yellow-500 bg-yellow-100 overflow-hidden flex items-center justify-center">
+              {top3[0] ? (
+                <img src={`https://api.dicebear.com/9.x/adventurer/svg?seed=${top3[0].walletAddress}`} alt="" className="w-full h-full" />
+              ) : (
+                <span className="text-xs text-secondary">?</span>
+              )}
+            </div>
+            <div className="bg-yellow-300 w-14 h-16 flex flex-col items-center justify-center mt-1 border border-on-surface">
+              <span className="text-base">🥇</span>
+              <span className="font-label text-[8px] font-bold">$5</span>
+            </div>
+          </div>
+
+          {/* 3rd place */}
+          <div className="flex flex-col items-center">
+            <div className="w-10 h-10 rounded-full border-2 border-orange-300 bg-surface-container overflow-hidden flex items-center justify-center">
+              {top3[2] ? (
+                <img src={`https://api.dicebear.com/9.x/adventurer/svg?seed=${top3[2].walletAddress}`} alt="" className="w-full h-full" />
+              ) : (
+                <span className="text-xs text-secondary">?</span>
+              )}
+            </div>
+            <div className="bg-orange-100 w-14 h-10 flex flex-col items-center justify-center mt-1 border border-on-surface">
+              <span className="text-sm">🥉</span>
+              <span className="font-label text-[8px] font-bold">$3</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Countdown */}
+        <p className="text-center font-label text-[10px] text-secondary">
+          ⏰ Resets in {getWeeklyCountdown()}
+        </p>
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-center mb-3">
         <h1 className="font-display text-xl uppercase tracking-tighter">
