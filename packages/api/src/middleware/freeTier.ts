@@ -3,7 +3,6 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
-const FREE_GENERATIONS = 1; // First create story is free
 
 export async function freeTierGuard(req: Request, _res: Response, next: NextFunction) {
   // Parse userId from token
@@ -18,12 +17,13 @@ export async function freeTierGuard(req: Request, _res: Response, next: NextFunc
     next(); return;
   }
 
-  // Count total completed/running generations
-  const jobCount = await prisma.generationJob.count({
-    where: { userId, status: { in: ['completed', 'running', 'queued'] } },
+  // Check user credits
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { credits: true },
   });
 
-  if (jobCount < FREE_GENERATIONS) {
+  if (user && user.credits > 0) {
     (req as any).skipPayment = true;
   }
 

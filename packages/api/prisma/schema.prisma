@@ -12,14 +12,17 @@ model User {
   walletAddress String   @unique @map("wallet_address") @db.VarChar(64)
   displayName   String?  @map("display_name") @db.VarChar(80)
   avatarUrl     String?  @map("avatar_url")
+  credits       Int      @default(1) // starts with 1 free credit
+  tier          String   @default("free") @db.VarChar(20) // free | starter | creator | pro
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
 
-  stories        Story[]
-  generationJobs GenerationJob[]
-  assets         Asset[]
-  subscriptions  UserSubscription[]
-  comments       Comment[]
+  stories          Story[]
+  generationJobs   GenerationJob[]
+  assets           Asset[]
+  subscriptions    UserSubscription[]
+  comments         Comment[]
+  creditPurchases  CreditPurchase[]
 
   @@map("users")
 }
@@ -276,4 +279,18 @@ model Comment {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("comments")
+}
+
+model CreditPurchase {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  package     String   @db.VarChar(20) // starter | creator | pro
+  credits     Int      // credits added
+  amountUsd   String   @map("amount_usd") @db.VarChar(10) // "0.50" | "2" | "5"
+  paymentTx   String   @unique @map("payment_tx")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_purchases")
 }

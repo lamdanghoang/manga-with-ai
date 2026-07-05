@@ -13,7 +13,7 @@ import { useState } from "react";
 // USDC on Celo Sepolia (Circle official)
 const USDC_ADDRESS = "0x01C5C0122039549AD1493B8220cABEdD739BC44E" as const;
 const MERCHANT_WALLET = "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8" as const;
-const PRICE_USDC = "0.01"; // $0.01
+const PRICE_USDC = "0.05"; // $0.05
 
 const ERC20_ABI = [
   {
@@ -97,7 +97,7 @@ export function PayModal({ isOpen, onClose, onSuccess }: PayModalProps) {
         </p>
 
         <div className="border-2 border-on-surface bg-surface-container p-3 text-center">
-          <p className="font-display text-2xl text-primary">$0.01</p>
+          <p className="font-display text-2xl text-primary">$0.05</p>
           <p className="font-label text-xs text-secondary">
             USDC
           </p>

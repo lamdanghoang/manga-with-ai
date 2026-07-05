@@ -40,11 +40,32 @@ router.get(
     });
 
     const isVip =
-      sub?.plan === "vip" && (!sub.expiresAt || sub.expiresAt > new Date());
+      sub && (sub.plan === "vip" || sub.plan === "vip_unlimited") &&
+      (!sub.expiresAt || sub.expiresAt > new Date());
+
+    // Count stories this month for quota
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const monthlyStories = await prisma.generationJob.count({
+      where: {
+        userId: req.userId!,
+        status: { in: ["completed", "running", "queued"] },
+        createdAt: { gte: monthStart },
+      },
+    });
+
+    const quotas: Record<string, number> = { vip: 20, vip_unlimited: -1 };
+    const quota = isVip ? (quotas[sub!.plan] || 0) : 0;
+    const remaining = quota === -1 ? -1 : Math.max(0, quota - monthlyStories);
 
     res.json({
-      plan: isVip ? "vip" : "free",
+      plan: isVip ? sub!.plan : "free",
       expiresAt: sub?.expiresAt?.toISOString() || null,
+      monthlyStories,
+      quota,        // -1 = unlimited
+      remaining,    // -1 = unlimited
     });
   },
 );
@@ -52,15 +73,20 @@ router.get(
 /**
  * POST /v1/user/subscribe
  * Upgrade to VIP plan with payment.
- * Body: { paymentTx: string, plan: "vip" }
+ * Body: { paymentTx: string, plan: "vip" | "vip_unlimited" }
  */
 router.post(
   "/user/subscribe",
   authMiddleware,
   async (req: AuthRequest, res: Response) => {
     const { paymentTx, plan } = req.body;
-    if (plan !== "vip") {
-      res.status(400).json({ error: "Invalid plan" });
+    const validPlans: Record<string, { amount: bigint; stories: number }> = {
+      vip: { amount: BigInt(2000000), stories: 20 },           // $2 USDC
+      vip_unlimited: { amount: BigInt(5000000), stories: -1 }, // $5 USDC, -1 = unlimited
+    };
+
+    if (!validPlans[plan]) {
+      res.status(400).json({ error: "Invalid plan. Use 'vip' or 'vip_unlimited'" });
       return;
     }
     if (!paymentTx) {
@@ -96,10 +122,10 @@ router.post(
         return;
       }
 
-      // Verify it's a USDC transfer to merchant for >= $1
+      // Verify USDC transfer amount
       const USDC = "0x01c5c0122039549ad1493b8220cabedd739bc44e";
       const MERCHANT = (process.env.MERCHANT_WALLET || "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8").toLowerCase();
-      const REQUIRED = BigInt(1000000); // $1 USDC (6 decimals)
+      const REQUIRED = validPlans[plan].amount;
 
       const transferLog = receipt.logs.find(
         (log) =>
@@ -108,18 +134,17 @@ router.post(
       );
 
       if (!transferLog) {
-        res.status(400).json({ error: "No USDC transfer to merchant found in tx" });
+        res.status(400).json({ error: "No USDC transfer to merchant found" });
         return;
       }
 
       const amount = BigInt(transferLog.data);
       if (amount < REQUIRED) {
-        res.status(400).json({ error: `Insufficient amount: need $1 USDC, got ${Number(amount) / 1e6}` });
+        res.status(400).json({ error: `Insufficient: need $${Number(REQUIRED) / 1e6} USDC` });
         return;
       }
     } catch (verifyErr: any) {
-      // If verification fails due to network, reject
-      res.status(400).json({ error: "Could not verify payment: " + (verifyErr.message || "").slice(0, 100) });
+      res.status(400).json({ error: "Verify failed: " + (verifyErr.message || "").slice(0, 100) });
       return;
     }
 
@@ -128,7 +153,7 @@ router.post(
     const sub = await prisma.userSubscription.create({
       data: {
         userId: req.userId!,
-        plan: "vip",
+        plan,
         paymentTx,
         expiresAt,
       },
