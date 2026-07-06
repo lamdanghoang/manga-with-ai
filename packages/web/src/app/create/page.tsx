@@ -390,7 +390,7 @@ export default function CreatePage() {
             ? `${userCredits} credits remaining`
             : userCredits === 1
               ? '1 credit remaining'
-              : 'No credits — $0.05 per generation'}
+              : <span>No credits — <button onClick={() => setShowPackageModal(true)} className="text-primary underline">Buy credits</button> or $0.05 per use</span>}
         </p>
 
         {/* Error modal */}
