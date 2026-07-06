@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { RequireAuth } from "@/components/RequireAuth";
 import { PayModal } from "@/components/PayModal";
-import { VipModal } from "@/components/VipModal";
+import { PackageModal } from "@/components/PackageModal";
 
 interface CharRef {
   name: string;
@@ -34,8 +34,8 @@ export default function CreatePage() {
   // Styles
   const [styles, setStyles] = useState<StyleTemplate[]>([]);
   const [selectedStyle, setSelectedStyle] = useState<string>("manga-bw");
-  const [userPlan, setUserPlan] = useState<"free" | "vip">("free");
-  const [showVipModal, setShowVipModal] = useState(false);
+  const [userPlan, setUserPlan] = useState<string>("free");
+  const [showPackageModal, setShowPackageModal] = useState(false);
 
   // Payment
   const [showPayModal, setShowPayModal] = useState(false);
@@ -46,8 +46,8 @@ export default function CreatePage() {
     api<{ items: StyleTemplate[] }>("/v1/styles")
       .then((d) => setStyles(d.items || []))
       .catch(() => {});
-    api<{ plan: string }>("/v1/user/subscription")
-      .then((d) => setUserPlan(d.plan as "free" | "vip"))
+    api<{ credits: number; tier: string }>("/v1/user/credits")
+      .then((d) => setUserPlan(d.tier || "free"))
       .catch(() => {});
   }, []);
 
@@ -77,16 +77,20 @@ export default function CreatePage() {
   }
 
   function handleStyleSelect(slug: string, tier: string) {
-    if (tier === "vip" && userPlan !== "vip") {
-      setShowVipModal(true);
+    const isPremium = ["creator", "pro"].includes(userPlan);
+    if (tier === "vip" && !isPremium) {
+      setShowPackageModal(true);
       return;
     }
     setSelectedStyle(slug);
   }
 
-  function handleVipSuccess() {
-    setShowVipModal(false);
-    setUserPlan("vip");
+  function handlePackageSuccess() {
+    setShowPackageModal(false);
+    // Reload tier
+    api<{ credits: number; tier: string }>("/v1/user/credits")
+      .then((d) => setUserPlan(d.tier || "free"))
+      .catch(() => {});
   }
 
   async function handleSubmit(e?: React.FormEvent, txOverride?: string) {
@@ -100,7 +104,7 @@ export default function CreatePage() {
     // Build style string from selected template + custom prompt
     const selectedTemplate = styles.find((s) => s.slug === selectedStyle);
     let styleString = selectedTemplate?.slug || "manga-bw";
-    if (customStylePrompt.trim() && userPlan === "vip") {
+    if (customStylePrompt.trim() && ["creator", "pro"].includes(userPlan)) {
       styleString += `. Custom style: ${customStylePrompt.trim()}`;
     }
 
@@ -112,7 +116,7 @@ export default function CreatePage() {
           prompt: `${prompt}. Style: ${styleString}`,
           stylePreset: selectedStyle as any,
           panelCount,
-          customStylePrompt: userPlan === "vip" ? customStylePrompt : undefined,
+          customStylePrompt: ["creator", "pro"].includes(userPlan) ? customStylePrompt : undefined,
           characterRefs: charRefs.map((c) => ({
             name: c.name || "Character",
             role: c.role,
@@ -294,7 +298,7 @@ export default function CreatePage() {
         <div className="mt-5 border-4 border-on-surface bg-white p-4 comic-shadow-lg">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-display text-base uppercase">ART STYLE</h3>
-            {userPlan === "vip" && (
+            {["creator", "pro"].includes(userPlan) && (
               <span className="font-label text-[10px] bg-yellow-400 text-on-surface px-2 py-0.5 font-bold border border-on-surface">
                 VIP
               </span>
@@ -304,7 +308,7 @@ export default function CreatePage() {
           {/* Style Grid */}
           <div className="grid grid-cols-2 gap-2 mb-3">
             {styles.map((style) => {
-              const isLocked = style.tier === "vip" && userPlan !== "vip";
+              const isLocked = style.tier === "vip" && !["creator", "pro"].includes(userPlan);
               const isSelected = selectedStyle === style.slug;
               return (
                 <button
@@ -334,11 +338,11 @@ export default function CreatePage() {
             })}
           </div>
 
-          {/* Custom Style Prompt (VIP only) */}
+          {/* Custom Style Prompt (Creator/Pro only) */}
           <div className="relative pt-2">
             <label className="absolute -top-1 left-3 bg-white px-1 font-label text-[10px] border border-on-surface z-10 font-bold uppercase flex items-center gap-1">
               Custom Style
-              {userPlan !== "vip" && (
+              {!["creator", "pro"].includes(userPlan) && (
                 <span className="text-[8px] bg-yellow-400 text-on-surface px-1">
                   VIP
                 </span>
@@ -347,32 +351,32 @@ export default function CreatePage() {
             <textarea
               value={customStylePrompt}
               onChange={(e) => {
-                if (userPlan !== "vip") {
-                  setShowVipModal(true);
+                if (!["creator", "pro"].includes(userPlan)) {
+                  setShowPackageModal(true);
                   return;
                 }
                 setCustomStylePrompt(e.target.value);
               }}
               rows={2}
               placeholder={
-                userPlan === "vip"
+                ["creator", "pro"].includes(userPlan)
                   ? 'Add custom style instructions... (e.g., "Studio Ghibli watercolor with golden hour lighting")'
-                  : "Unlock VIP to use custom style prompts"
+                  : "Buy Creator package to use custom styles"
               }
-              disabled={userPlan !== "vip"}
+              disabled={!["creator", "pro"].includes(userPlan)}
               className="w-full border-2 border-on-surface bg-surface-container font-body p-2.5 focus:outline-none focus:border-primary resize-none text-xs disabled:opacity-50"
             />
           </div>
 
-          {/* Unlock VIP button */}
-          {userPlan !== "vip" && (
+          {/* Unlock premium styles button */}
+          {!["creator", "pro"].includes(userPlan) && (
             <button
               type="button"
-              onClick={() => setShowVipModal(true)}
+              onClick={() => setShowPackageModal(true)}
               className="w-full mt-3 flex items-center justify-center gap-2 bg-yellow-400 text-on-surface font-label text-xs font-bold uppercase py-2.5 border-2 border-on-surface comic-shadow-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
             >
               <span className="material-symbols-outlined text-base">star</span>
-              UNLOCK VIP STYLES — $1/MONTH
+              UNLOCK PREMIUM STYLES
             </button>
           )}
         </div>
@@ -395,10 +399,10 @@ export default function CreatePage() {
           onClose={() => setShowPayModal(false)}
           onSuccess={handlePaySuccess}
         />
-        <VipModal
-          isOpen={showVipModal}
-          onClose={() => setShowVipModal(false)}
-          onSuccess={handleVipSuccess}
+        <PackageModal
+          isOpen={showPackageModal}
+          onClose={() => setShowPackageModal(false)}
+          onSuccess={handlePackageSuccess}
         />
       </main>
     </RequireAuth>

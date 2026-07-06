@@ -128,7 +128,7 @@ export async function processCreateStory(jobId: string) {
 
     // Step 2: Scene plan for chapter 1
     const scenePlan = await generateStructuredJSON<ScenePlanResult>({
-      prompt: `Based on this story bible, create a scene plan for chapter 1 with exactly ${panelCount} panels.\n\nStory: ${bible.title}\nSynopsis: ${bible.synopsis}\nCharacters: ${bible.characters.map(c => `${c.name} - ${c.appearance}`).join('; ')}\nLocations: ${bible.locations.map(l => `${l.name} - ${l.visualDescription}`).join('; ')}\nStyle: ${stylePreset === 'manga-bw' ? 'black and white manga with screentone shading' : 'soft color manga illustration'}`,
+      prompt: `Based on this story bible, create a scene plan for chapter 1 with exactly ${panelCount} panels.\n\nStory: ${bible.title}\nSynopsis: ${bible.synopsis}\nCharacters: ${bible.characters.map(c => `${c.name} - ${c.appearance}`).join('; ')}\nLocations: ${bible.locations.map(l => `${l.name} - ${l.visualDescription}`).join('; ')}\nStyle: ${stylePreset}`,
       systemInstruction: 'You are a manga panel director. Create detailed visual prompts for each panel that maintain character consistency. Each visualPrompt should describe the exact scene for image generation.',
       schema: SCENE_PLAN_SCHEMA,
     });
@@ -143,9 +143,23 @@ export async function processCreateStory(jobId: string) {
     });
 
     // Step 3: Generate full manga page with all panels in one image
-    const stylePrefix = stylePreset === 'manga-bw'
-      ? 'Black and white manga page with screentone shading, dramatic inking, professional manga layout.'
-      : 'Soft color manga page illustration style, pastel tones, professional manga layout.';
+    const STYLE_PROMPTS: Record<string, string> = {
+      'manga-bw': 'Black and white manga page with screentone shading, dramatic inking, professional manga layout.',
+      'manga-soft-color': 'Soft color manga page illustration style, pastel tones, professional manga layout.',
+      'high-energy': 'High energy action manga page with dynamic speed lines, intense shading, bold inking, explosive composition.',
+      'dark-dramatic': 'Dark dramatic manga page with heavy shadows, noir style, high contrast, moody atmosphere.',
+      'chibi-cute': 'Chibi cute manga style with rounded characters, big eyes, kawaii expressions, soft lines, pastel colors.',
+      'cyberpunk-neon': 'Cyberpunk neon manga page with glowing neon colors, futuristic cityscape, dark backgrounds, vibrant highlights.',
+      'watercolor-fantasy': 'Watercolor fantasy manga illustration with soft flowing colors, ethereal atmosphere, delicate linework.',
+      'retro-80s': 'Retro 80s anime style with cel shading, vintage color palette, nostalgic aesthetic, bold outlines.',
+      'horror-ito': 'Horror manga style inspired by Junji Ito, detailed crosshatching, unsettling imagery, grotesque beauty, black and white.',
+      'webtoon-color': 'Full color webtoon style, clean digital art, vibrant colors, modern manhwa aesthetic, vertical scroll format.',
+    };
+
+    const customStyle = (job.inputPayload as any).customStylePrompt;
+    const stylePrefix = customStyle
+      ? `${customStyle}. Professional manga page layout.`
+      : (STYLE_PROMPTS[stylePreset] || STYLE_PROMPTS['manga-bw']);
 
     const panelDescriptions = scenePlan.panels.map((p, i) =>
       `Panel ${i + 1}: ${p.visualPrompt}${p.characters?.length ? ` (Characters: ${p.characters.join(', ')})` : ''}${p.location ? ` (Location: ${p.location})` : ''}`
@@ -230,9 +244,20 @@ export async function processContinueStory(jobId: string) {
       },
     });
 
-    const stylePrefix = story!.stylePreset === 'manga-bw'
-      ? 'Black and white manga page with screentone shading, professional manga layout.'
-      : 'Soft color manga page illustration style, professional manga layout.';
+    const STYLE_PROMPTS_CONTINUE: Record<string, string> = {
+      'manga-bw': 'Black and white manga page with screentone shading, professional manga layout.',
+      'manga-soft-color': 'Soft color manga page illustration style, professional manga layout.',
+      'high-energy': 'High energy action manga page with dynamic speed lines, intense shading, bold inking.',
+      'dark-dramatic': 'Dark dramatic manga page with heavy shadows, noir style, high contrast.',
+      'chibi-cute': 'Chibi cute manga style with rounded characters, big eyes, kawaii expressions.',
+      'cyberpunk-neon': 'Cyberpunk neon manga page with glowing neon colors, futuristic style.',
+      'watercolor-fantasy': 'Watercolor fantasy manga illustration with soft flowing colors, ethereal atmosphere.',
+      'retro-80s': 'Retro 80s anime style with cel shading, vintage color palette.',
+      'horror-ito': 'Horror manga style inspired by Junji Ito, detailed crosshatching, unsettling imagery.',
+      'webtoon-color': 'Full color webtoon style, clean digital art, vibrant colors, modern manhwa aesthetic.',
+    };
+
+    const stylePrefix = STYLE_PROMPTS_CONTINUE[story!.stylePreset] || STYLE_PROMPTS_CONTINUE['manga-bw'];
 
     const panelDescriptions = scenePlan.panels.map((p, i) =>
       `Panel ${i + 1}: ${p.visualPrompt}${p.characters?.length ? ` (Characters: ${p.characters.join(', ')})` : ''}`
