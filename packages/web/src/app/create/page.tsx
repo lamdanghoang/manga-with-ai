@@ -28,6 +28,7 @@ export default function CreatePage() {
   const [panelCount, setPanelCount] = useState<4 | 6 | 8>(4);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const [charRefs, setCharRefs] = useState<CharRef[]>([]);
   const [customStylePrompt, setCustomStylePrompt] = useState("");
 
@@ -35,6 +36,7 @@ export default function CreatePage() {
   const [styles, setStyles] = useState<StyleTemplate[]>([]);
   const [selectedStyle, setSelectedStyle] = useState<string>("manga-bw");
   const [userPlan, setUserPlan] = useState<string>("free");
+  const [userCredits, setUserCredits] = useState<number>(0);
   const [showPackageModal, setShowPackageModal] = useState(false);
 
   // Payment
@@ -47,7 +49,7 @@ export default function CreatePage() {
       .then((d) => setStyles(d.items || []))
       .catch(() => {});
     api<{ credits: number; tier: string }>("/v1/user/credits")
-      .then((d) => setUserPlan(d.tier || "free"))
+      .then((d) => { setUserPlan(d.tier || "free"); setUserCredits(d.credits || 0); })
       .catch(() => {});
   }, []);
 
@@ -87,9 +89,9 @@ export default function CreatePage() {
 
   function handlePackageSuccess() {
     setShowPackageModal(false);
-    // Reload tier
+    // Reload tier + credits
     api<{ credits: number; tier: string }>("/v1/user/credits")
-      .then((d) => setUserPlan(d.tier || "free"))
+      .then((d) => { setUserPlan(d.tier || "free"); setUserCredits(d.credits || 0); })
       .catch(() => {});
   }
 
@@ -97,6 +99,7 @@ export default function CreatePage() {
     if (e) e.preventDefault();
     if (!prompt.trim()) return;
     setLoading(true);
+    setErrorMsg("");
     setStatus("ESTABLISHING LEGEND...");
 
     const tx = txOverride || paymentTx;
@@ -140,7 +143,7 @@ export default function CreatePage() {
         } else if (job.status === "failed") {
           clearInterval(interval);
           setLoading(false);
-          setStatus("GENERATION FAILED");
+          setErrorMsg("Generation failed. Your credit has been refunded.");
         }
       }, 3000);
     } catch (err: any) {
@@ -148,7 +151,7 @@ export default function CreatePage() {
       if (err.message?.includes("402") || err.message?.includes("Payment")) {
         setShowPayModal(true);
       } else {
-        setStatus(err.message || "ERROR");
+        setErrorMsg(err.message || "Something went wrong. Please try again.");
       }
     }
   }
@@ -380,6 +383,28 @@ export default function CreatePage() {
             </button>
           )}
         </div>
+
+        {/* Credits remaining */}
+        <p className="text-center font-label text-[11px] text-secondary mt-4">
+          {userCredits > 0 ? `${userCredits} credits remaining` : 'No credits — pay $0.05 per generation'}
+        </p>
+
+        {/* Error modal */}
+        {errorMsg && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="border-2 border-on-surface bg-white p-5 max-w-xs w-full text-center space-y-3">
+              <p className="text-3xl">⚠️</p>
+              <p className="font-display text-sm uppercase text-red-600">Generation Failed</p>
+              <p className="font-label text-xs text-secondary">{errorMsg}</p>
+              <button
+                onClick={() => setErrorMsg("")}
+                className="w-full bg-on-surface text-white font-label text-xs font-bold uppercase py-2 border-2 border-on-surface"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Submit CTA */}
         <button

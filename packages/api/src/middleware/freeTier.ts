@@ -5,6 +5,10 @@ import { prisma } from '../lib/prisma';
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 
 export async function freeTierGuard(req: Request, _res: Response, next: NextFunction) {
+  // Only apply to POST requests that create stories/chapters
+  if (req.method !== 'POST') { next(); return; }
+  if (!req.path.match(/\/stories$|\/stories\/[^/]+\/chapters$/)) { next(); return; }
+
   // Parse userId from token
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) { next(); return; }
