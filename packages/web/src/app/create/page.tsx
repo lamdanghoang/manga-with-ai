@@ -386,7 +386,11 @@ export default function CreatePage() {
 
         {/* Credits remaining */}
         <p className="text-center font-label text-[11px] text-secondary mt-4">
-          {userCredits > 0 ? `${userCredits} credits remaining` : 'No credits — pay $0.05 per generation'}
+          {userCredits > 1
+            ? `${userCredits} credits remaining`
+            : userCredits === 1
+              ? '1 credit remaining'
+              : 'No credits — $0.05 per generation'}
         </p>
 
         {/* Error modal */}
