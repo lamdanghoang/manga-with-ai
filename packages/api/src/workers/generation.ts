@@ -213,6 +213,7 @@ export async function processCreateStory(jobId: string) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'completed', chapterId: chapter.id, finishedAt: new Date() } });
   } catch (err: any) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', errorMessage: sanitize(err.message || "Unknown error"), finishedAt: new Date() } });
+        await prisma.user.update({ where: { id: job.userId }, data: { credits: { increment: 1 } } }).catch(() => {});
   }
 }
 
@@ -309,6 +310,7 @@ export async function processContinueStory(jobId: string) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'completed', chapterId: chapter.id, finishedAt: new Date() } });
   } catch (err: any) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', errorMessage: sanitize(err.message || "Unknown error"), finishedAt: new Date() } });
+        await prisma.user.update({ where: { id: job.userId }, data: { credits: { increment: 1 } } }).catch(() => {});
   }
 }
 
@@ -333,6 +335,7 @@ export async function processRegeneratePanel(jobId: string) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'completed', finishedAt: new Date() } });
   } catch (err: any) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', errorMessage: sanitize(err.message || "Unknown error"), finishedAt: new Date() } });
+        await prisma.user.update({ where: { id: job.userId }, data: { credits: { increment: 1 } } }).catch(() => {});
   }
 }
 
@@ -360,5 +363,6 @@ export async function processRegenerateChapter(jobId: string) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'completed', finishedAt: new Date() } });
   } catch (err: any) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', errorMessage: sanitize(err.message || "Unknown error"), finishedAt: new Date() } });
+        await prisma.user.update({ where: { id: job.userId }, data: { credits: { increment: 1 } } }).catch(() => {});
   }
 }

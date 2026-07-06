@@ -17,14 +17,16 @@ export async function freeTierGuard(req: Request, _res: Response, next: NextFunc
     next(); return;
   }
 
-  // Check user credits
+  // Check user credits — deduct upfront, refund on failure
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { credits: true },
   });
 
   if (user && user.credits > 0) {
+    await prisma.user.update({ where: { id: userId }, data: { credits: { decrement: 1 } } });
     (req as any).skipPayment = true;
+    (req as any).creditDeducted = true;
   }
 
   next();

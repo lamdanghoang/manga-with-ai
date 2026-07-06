@@ -58,9 +58,6 @@ router.post(
       },
     });
 
-    if ((req as any).skipPayment) {
-      await prisma.user.update({ where: { id: req.userId! }, data: { credits: { decrement: 1 } } });
-    }
 
     res
       .status(202)
@@ -225,9 +222,6 @@ router.post(
       },
     });
 
-    if ((req as any).skipPayment) {
-      await prisma.user.update({ where: { id: req.userId! }, data: { credits: { decrement: 1 } } });
-    }
 
     res
       .status(202)
