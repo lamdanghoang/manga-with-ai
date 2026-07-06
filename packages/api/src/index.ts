@@ -22,6 +22,7 @@ import authRouter from "./routes/auth";
 import storiesRouter from "./routes/stories";
 import leaderboardRouter from "./routes/leaderboard";
 import stylesRouter from "./routes/styles";
+import creditsRouter from "./routes/credits";
 import { startJobPoller } from "./workers/poller";
 
 import path from "path";
@@ -118,6 +119,7 @@ if (process.env.MERCHANT_WALLET) {
 app.use("/v1", storiesRouter);
 app.use("/v1", leaderboardRouter);
 app.use("/v1", stylesRouter);
+app.use("/v1", creditsRouter);
 
 const PORT = process.env.API_PORT || 4000;
 app.listen(PORT, () => {

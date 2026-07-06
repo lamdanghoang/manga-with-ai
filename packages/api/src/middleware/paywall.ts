@@ -4,7 +4,7 @@ import { prisma } from "../lib/prisma";
 
 const MERCHANT_ADDRESS = process.env.MERCHANT_WALLET!.toLowerCase();
 const USDC_ADDRESS = "0x01C5C0122039549AD1493B8220cABEdD739BC44E".toLowerCase();
-const REQUIRED_AMOUNT = BigInt(10000); // $0.01 USDC (6 decimals)
+const REQUIRED_AMOUNT = BigInt(50000); // $0.05 USDC (6 decimals)
 
 const celoSepolia = defineChain({
   id: 11142220,
@@ -86,9 +86,9 @@ export async function paywall(req: Request, res: Response, next: NextFunction) {
 
   res.status(402).json({
     error: "Payment Required",
-    message: "This generation requires payment. $0.01 USDC on Celo Sepolia.",
+    message: "This generation requires payment. $0.05 USDC on Celo Sepolia.",
     payment: {
-      amount: "10000",
+      amount: "50000",
       asset: "USDC",
       assetAddress: "0x01C5C0122039549AD1493B8220cABEdD739BC44E",
       network: "celo-sepolia",
