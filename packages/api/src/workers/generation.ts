@@ -186,7 +186,7 @@ export async function processCreateStory(jobId: string) {
       const refImages = charRefs.filter(c => c.referenceImageUrl && c.referenceImageUrl.startsWith('data:')).map(c => ({ data: c.referenceImageUrl!.replace(/^data:[^;]+;base64,/, ''), mimeType: 'image/png' }));
       const result = await generateImage({ prompt: fullPagePrompt, referenceImages: refImages.length ? refImages : undefined, aspectRatio: '2:3' });
       console.log('[IMAGE] Got image, size:', result.imageData.length, 'bytes');
-      chapterImageUrl = uploadImageSync(result.imageData, result.mimeType);
+      chapterImageUrl = await uploadImage(result.imageData, result.mimeType);
       console.log('[IMAGE] Saved to:', chapterImageUrl);
     } catch (imgErr: any) {
       if (!imgErr.message?.includes('EPROTO')) {
@@ -278,7 +278,7 @@ export async function processContinueStory(jobId: string) {
     try {
       const refImages = charRefs.map(c => ({ data: c.referenceImageUrl!.replace(/^data:[^;]+;base64,/, ''), mimeType: 'image/png' }));
       const result = await generateImage({ prompt: fullPagePrompt, referenceImages: refImages.length ? refImages : undefined, aspectRatio: '2:3' });
-      continueImageUrl = uploadImageSync(result.imageData, result.mimeType);
+      continueImageUrl = await uploadImage(result.imageData, result.mimeType);
       console.log('[IMAGE] Continue saved to:', continueImageUrl);
     } catch (imgErr: any) {
       if (!imgErr.message?.includes('EPROTO')) {
@@ -326,7 +326,7 @@ export async function processRegeneratePanel(jobId: string) {
     await prisma.asset.updateMany({ where: { panelId, isActive: true }, data: { isActive: false } });
 
     const result = await generateImage({ prompt: panel.visualPrompt, aspectRatio: panel.chapter.story.aspectRatio || '3:4' });
-    const fileUrl = uploadImageSync(result.imageData, result.mimeType);
+    const fileUrl = await uploadImage(result.imageData, result.mimeType);
 
     await prisma.asset.create({
       data: { ownerUserId: job.userId, storyId: panel.chapter.storyId, chapterId: panel.chapterId, panelId, assetType: 'panel_image', fileUrl, mimeType: result.mimeType, generationModel: 'gemini-3-pro-image-preview', generationParams: { prompt: sanitize(panel.visualPrompt) }, version: 2 },
@@ -351,7 +351,7 @@ export async function processRegenerateChapter(jobId: string) {
 
       try {
         const result = await generateImage({ prompt: panel.visualPrompt, aspectRatio: chapter.story.aspectRatio || '3:4' });
-        const fileUrl = uploadImageSync(result.imageData, result.mimeType);
+        const fileUrl = await uploadImage(result.imageData, result.mimeType);
         await prisma.asset.create({
           data: { ownerUserId: job.userId, storyId: chapter.storyId, chapterId: chapter.id, panelId: panel.id, assetType: 'panel_image', fileUrl, mimeType: result.mimeType, generationModel: 'gemini-3-pro-image-preview', generationParams: { prompt: sanitize(panel.visualPrompt) }, version: 2 },
         });
