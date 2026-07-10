@@ -567,6 +567,17 @@ router.post(
       return;
     }
 
+    // Sanitize: strip HTML tags and script patterns
+    const sanitized = text.trim()
+      .replace(/<[^>]*>/g, '')
+      .replace(/javascript:/gi, '')
+      .replace(/on\w+\s*=/gi, '');
+
+    if (sanitized.length === 0) {
+      res.status(400).json({ error: "Invalid comment content" });
+      return;
+    }
+
     const story = await prisma.story.findFirst({
       where: { publicSlug: req.params.slug as string, visibility: "public" },
     });
@@ -576,7 +587,7 @@ router.post(
     }
 
     const comment = await prisma.comment.create({
-      data: { storyId: story.id, userId: req.userId!, text: text.trim() },
+      data: { storyId: story.id, userId: req.userId!, text: sanitized },
       include: {
         user: {
           select: { walletAddress: true, displayName: true, avatarUrl: true },

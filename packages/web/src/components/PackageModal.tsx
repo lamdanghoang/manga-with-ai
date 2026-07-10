@@ -92,7 +92,7 @@ export function PackageModal({ isOpen, onClose, onSuccess }: PackageModalProps) 
     const pkg = PACKAGES[selectedPkg];
 
     try {
-      await switchChainAsync({ chainId: celoSepolia.id });
+      try { await switchChainAsync({ chainId: celoSepolia.id }); } catch {}
 
       const txHash = await writeContractAsync({
         address: USDC_ADDRESS,

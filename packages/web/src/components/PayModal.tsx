@@ -62,7 +62,8 @@ export function PayModal({ isOpen, onClose, onSuccess }: PayModalProps) {
     setPaying(true);
     setError("");
     try {
-      await switchChainAsync({ chainId: celoSepolia.id });
+      // Skip switchChain in MiniPay (already on correct chain)
+      try { await switchChainAsync({ chainId: celoSepolia.id }); } catch {}
       const txHash = await writeContractAsync({
         address: USDC_ADDRESS,
         abi: ERC20_ABI,
