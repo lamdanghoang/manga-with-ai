@@ -42,7 +42,7 @@ interface PayModalProps {
 }
 
 export function PayModal({ isOpen, onClose, onSuccess }: PayModalProps) {
-  const { address } = useAccount();
+  const { address, chain } = useAccount();
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState("");
 
@@ -105,23 +105,31 @@ export function PayModal({ isOpen, onClose, onSuccess }: PayModalProps) {
           <p className="font-label text-[10px] text-secondary mt-1">
             Your balance: ${balanceFormatted} USDC
           </p>
-          {balance !== undefined && Number(balance) < 10000 && (
+          {balance !== undefined && Number(balance) < 50000 && (
             <a
-              href="https://link.minipay.xyz/add_cash?tokens=USDC"
+              href={celoSepolia.id === 11142220 ? "https://faucet.circle.com/" : "https://link.minipay.xyz/add_cash?tokens=USDC"}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block mt-2 font-label text-[10px] text-primary underline"
             >
-              Deposit USDC →
+              {celoSepolia.id === 11142220 ? "Get testnet USDC →" : "Deposit USDC →"}
             </a>
           )}
         </div>
 
         {error && <p className="text-xs text-red-500 text-center">{error}</p>}
 
+        {chain && chain.id !== celoSepolia.id && (
+          <div className="border-2 border-yellow-400 bg-yellow-50 p-2 text-center">
+            <p className="font-label text-[10px] text-yellow-700">
+              Wrong network. Please switch to Celo Sepolia in your wallet settings.
+            </p>
+          </div>
+        )}
+
         <button
           onClick={handlePay}
-          disabled={paying}
+          disabled={paying || (chain?.id !== celoSepolia.id)}
           className="w-full bg-primary text-white font-display text-lg border-4 border-on-surface py-3 comic-shadow active:translate-x-1 active:translate-y-1 active:shadow-none transition-all uppercase disabled:opacity-50"
         >
           {paying ? "CONFIRMING..." : "PAY & GENERATE"}

@@ -4,8 +4,8 @@ import { useParams } from 'next/navigation';
 import { getApiUrl, api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { CONTRACTS, MARKETPLACE_ABI } from '@manga-with-ai/shared';
-import { celoSepolia } from '@/lib/wagmi';
+import { MARKETPLACE_ABI } from '@manga-with-ai/shared';
+import { celoSepolia, activeContracts as contracts } from '@/lib/wagmi';
 
 export default function PublicReaderPage() {
   const { slug } = useParams();
@@ -23,7 +23,6 @@ export default function PublicReaderPage() {
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const API = getApiUrl();
-  const contracts = CONTRACTS.celoSepolia;
 
   async function handleLike() {
     if (liked || liking || !address) return;
@@ -55,8 +54,17 @@ export default function PublicReaderPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const [commentError, setCommentError] = useState('');
+
   async function postComment() {
     if (!commentText.trim() || posting) return;
+    setCommentError('');
+    // Block code/script patterns
+    const codePatterns = /(<script|<\/script|javascript:|console\.|function\s*\(|=>|const |let |var |import |require\()/i;
+    if (codePatterns.test(commentText)) {
+      setCommentError('This comment contains invalid content');
+      return;
+    }
     setPosting(true);
     try {
       const c = await api<any>(`/v1/public/stories/${slug}/comments`, {
@@ -155,6 +163,7 @@ export default function PublicReaderPage() {
       {/* Comment input */}
       <div className="border-t border-on-surface/20 border-b border-b-on-surface/20 py-2 mb-3">
         {isAuthed ? (
+          <>
           <div className="flex gap-2 items-center">
             <input
               id="comment-input"
@@ -173,6 +182,8 @@ export default function PublicReaderPage() {
               Post
             </button>
           </div>
+          {commentError && <p className="text-[10px] text-red-500 font-label mt-1">{commentError}</p>}
+          </>
         ) : (
           <p className="text-xs text-secondary font-label">Connect wallet to comment</p>
         )}

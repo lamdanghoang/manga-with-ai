@@ -6,10 +6,8 @@ import {
   useWaitForTransactionReceipt,
   useReadContract,
 } from "wagmi";
-import { celoSepolia } from "@/lib/wagmi";
-import { CONTRACTS, MANGA_NFT_ABI } from "@manga-with-ai/shared";
-
-const contracts = CONTRACTS.celoSepolia;
+import { celoSepolia, activeContracts as contracts } from "@/lib/wagmi";
+import { MANGA_NFT_ABI } from "@manga-with-ai/shared";
 
 const ERC20_ABI = [
   {

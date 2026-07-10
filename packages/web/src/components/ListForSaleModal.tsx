@@ -7,14 +7,11 @@ import {
   useReadContract,
 } from "wagmi";
 import { parseUnits } from "viem";
-import { celoSepolia } from "@/lib/wagmi";
+import { celoSepolia, activeContracts as contracts } from "@/lib/wagmi";
 import {
-  CONTRACTS,
   MARKETPLACE_ABI,
   MANGA_NFT_ABI,
 } from "@manga-with-ai/shared";
-
-const contracts = CONTRACTS.celoSepolia;
 
 const TOKEN_OPTIONS = [
   { label: "USDC", address: contracts.usdc, decimals: 6 },

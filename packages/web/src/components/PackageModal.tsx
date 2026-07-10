@@ -195,12 +195,12 @@ export function PackageModal({ isOpen, onClose, onSuccess }: PackageModalProps) 
 
             {insufficientBalance && (
               <a
-                href="https://link.minipay.xyz/add_cash?tokens=USDC"
+                href={celoSepolia.id === 11142220 ? "https://faucet.circle.com/" : "https://link.minipay.xyz/add_cash?tokens=USDC"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block text-center font-label text-[10px] text-primary underline"
               >
-                Deposit USDC →
+                {celoSepolia.id === 11142220 ? "Get testnet USDC →" : "Deposit USDC →"}
               </a>
             )}
 
