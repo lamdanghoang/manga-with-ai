@@ -146,7 +146,7 @@ export default function LeaderboardPage() {
 
         {/* Countdown */}
         <p className="text-center font-label text-[10px] text-secondary">
-          ⏰ Resets in {getWeeklyCountdown()}
+          ⏰ Resets in {getWeeklyCountdown()} · Prizes sent by team weekly
         </p>
       </div>
 
