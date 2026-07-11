@@ -24,6 +24,27 @@ const config: HardhatUserConfig = {
       accounts: [DEPLOYER_KEY],
     },
   },
+  etherscan: {
+    apiKey: process.env.CELOSCAN_API_KEY || "api-key",
+    customChains: [
+      {
+        network: "celo",
+        chainId: 42220,
+        urls: {
+          apiURL: "https://api.celoscan.io/v2/api",
+          browserURL: "https://celoscan.io",
+        },
+      },
+      {
+        network: "celoSepolia",
+        chainId: 11142220,
+        urls: {
+          apiURL: "https://api-sepolia.celoscan.io/v2/api",
+          browserURL: "https://sepolia.celoscan.io",
+        },
+      },
+    ],
+  },
 };
 
 export default config;

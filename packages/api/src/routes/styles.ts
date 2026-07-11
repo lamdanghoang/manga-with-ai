@@ -106,6 +106,9 @@ router.post(
     // Verify payment on-chain
     try {
       const { createPublicClient, http, defineChain } = await import("viem");
+      const { celo } = await import("viem/chains");
+
+      const IS_MAINNET = process.env.CHAIN === "mainnet";
       const celoSepolia = defineChain({
         id: 11142220,
         name: "Celo Sepolia",
@@ -114,7 +117,7 @@ router.post(
         testnet: true,
       });
 
-      const client = createPublicClient({ chain: celoSepolia, transport: http() });
+      const client = createPublicClient({ chain: IS_MAINNET ? celo : celoSepolia, transport: http() });
       const receipt = await client.getTransactionReceipt({ hash: paymentTx as `0x${string}` });
 
       if (!receipt || receipt.status !== "success") {
@@ -123,7 +126,9 @@ router.post(
       }
 
       // Verify USDC transfer amount
-      const USDC = "0x01c5c0122039549ad1493b8220cabedd739bc44e";
+      const USDC = IS_MAINNET
+        ? "0xceba9300f2b948710d2653dd7b07f33a8b32118c"
+        : "0x01c5c0122039549ad1493b8220cabedd739bc44e";
       const MERCHANT = (process.env.MERCHANT_WALLET || "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8").toLowerCase();
       const REQUIRED = validPlans[plan].amount;
 

@@ -8,11 +8,8 @@ import {
   usePublicClient,
 } from "wagmi";
 import { parseUnits } from "viem";
-import { celoSepolia } from "@/lib/wagmi";
+import { celoSepolia, USDC_ADDRESS, MERCHANT_WALLET, DEPOSIT_LINK } from "@/lib/wagmi";
 import { api } from "@/lib/api";
-
-const USDC_ADDRESS = "0x01C5C0122039549AD1493B8220cABEdD739BC44E" as const;
-const MERCHANT_WALLET = "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8" as const;
 
 const ERC20_ABI = [
   {
@@ -195,7 +192,7 @@ export function PackageModal({ isOpen, onClose, onSuccess }: PackageModalProps) 
 
             {insufficientBalance && (
               <a
-                href={celoSepolia.id === 11142220 ? "https://faucet.circle.com/" : "https://link.minipay.xyz/add_cash?tokens=USDC"}
+                href={DEPOSIT_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block text-center font-label text-[10px] text-primary underline"

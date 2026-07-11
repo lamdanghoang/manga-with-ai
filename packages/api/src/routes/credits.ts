@@ -1,13 +1,18 @@
 import { Router, Response } from 'express';
-import { createPublicClient, http, parseAbiItem, decodeEventLog } from 'viem';
-import { celoAlfajores } from 'viem/chains';
+import { createPublicClient, http, parseAbiItem, decodeEventLog, defineChain } from 'viem';
+import { celo } from 'viem/chains';
 import { prisma } from '../lib/prisma';
 import { authMiddleware, AuthRequest } from './auth';
 
 const router = Router();
 
-const USDC_ADDRESS = '0x01c5c0122039549ad1493b8220cabedd739bc44e';
-const MERCHANT_ADDRESS = '0x792ca42f2c2f9d9fb56ddbbfe9a0916ae6e98dd8';
+const IS_MAINNET = process.env.CHAIN === 'mainnet';
+
+const USDC_ADDRESS = IS_MAINNET
+  ? '0xceba9300f2b948710d2653dd7b07f33a8b32118c'
+  : '0x01c5c0122039549ad1493b8220cabedd739bc44e';
+
+const MERCHANT_ADDRESS = (process.env.MERCHANT_WALLET || '0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8').toLowerCase();
 
 const PACKAGES = {
   starter: { credits: 5, priceRaw: 3000000n, tier: 'starter' },
@@ -17,18 +22,19 @@ const PACKAGES = {
 
 const TIER_RANK: Record<string, number> = { free: 0, starter: 1, creator: 2, pro: 3 };
 
-const celoSepolia = {
-  ...celoAlfajores,
+const celoSepolia = defineChain({
   id: 11142220,
   name: 'Celo Sepolia',
-  rpcUrls: {
-    default: { http: ['https://forno.celo-sepolia.celo-testnet.org'] },
-  },
-} as const;
+  nativeCurrency: { name: 'CELO', symbol: 'CELO', decimals: 18 },
+  rpcUrls: { default: { http: ['https://forno.celo-sepolia.celo-testnet.org'] } },
+  testnet: true,
+});
+
+const activeChain = IS_MAINNET ? celo : celoSepolia;
 
 const client = createPublicClient({
-  chain: celoSepolia as any,
-  transport: http('https://forno.celo-sepolia.celo-testnet.org'),
+  chain: activeChain,
+  transport: http(),
 });
 
 const transferEvent = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
