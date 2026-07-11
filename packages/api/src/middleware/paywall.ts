@@ -1,9 +1,20 @@
 import { Request, Response, NextFunction } from "express";
 import { createPublicClient, http, parseAbi, defineChain } from "viem";
+import { celo } from "viem/chains";
 import { prisma } from "../lib/prisma";
 
-const MERCHANT_ADDRESS = process.env.MERCHANT_WALLET!.toLowerCase();
-const USDC_ADDRESS = "0x01C5C0122039549AD1493B8220cABEdD739BC44E".toLowerCase();
+// Chain config from env
+const IS_MAINNET = process.env.CHAIN === "mainnet";
+
+const MERCHANT_ADDRESS = (process.env.MERCHANT_WALLET || "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8").toLowerCase();
+
+const USDC_ADDRESS = IS_MAINNET
+  ? "0xceba9300f2b948710d2653dd7b07f33a8b32118c" // Celo Mainnet USDC
+  : "0x01c5c0122039549ad1493b8220cabedd739bc44e"; // Celo Sepolia USDC
+
+const CHAIN_ID = IS_MAINNET ? 42220 : 11142220;
+const NETWORK_NAME = IS_MAINNET ? "celo" : "celo-sepolia";
+
 const REQUIRED_AMOUNT = BigInt(50000); // $0.05 USDC (6 decimals)
 
 const celoSepolia = defineChain({
@@ -13,22 +24,17 @@ const celoSepolia = defineChain({
   rpcUrls: {
     default: { http: ["https://forno.celo-sepolia.celo-testnet.org"] },
   },
-  blockExplorers: {
-    default: { name: "Celoscan", url: "https://sepolia.celoscan.io" },
-  },
   testnet: true,
 });
 
+const activeChain = IS_MAINNET ? celo : celoSepolia;
+
 const client = createPublicClient({
-  chain: celoSepolia,
+  chain: activeChain,
   transport: http(),
 });
 
-const ERC20_TRANSFER_EVENT = parseAbi([
-  "event Transfer(address indexed from, address indexed to, uint256 value)",
-]);
-
-// Verify payment tx - on production verifies on-chain, on dev trusts the hash
+// Verify payment tx on-chain
 async function verifyPaymentTx(txHash: string): Promise<boolean> {
   try {
     // Check replay: tx not used before
@@ -37,11 +43,8 @@ async function verifyPaymentTx(txHash: string): Promise<boolean> {
     });
     if (existing) return false;
 
-    // On production: verify on-chain
-    if (
-      process.env.NODE_ENV === "production" ||
-      process.env.VERIFY_ONCHAIN === "1"
-    ) {
+    // Verify on-chain (always in production, optional in dev)
+    if (IS_MAINNET || process.env.NODE_ENV === "production" || process.env.VERIFY_ONCHAIN === "1") {
       const receipt = await client.getTransactionReceipt({
         hash: txHash as `0x${string}`,
       });
@@ -61,7 +64,8 @@ async function verifyPaymentTx(txHash: string): Promise<boolean> {
     return true;
   } catch (err) {
     console.error("[PAY] Verify error:", (err as any).message?.slice(0, 80));
-    // If verification fails due to network, trust the hash in dev mode
+    // On mainnet always reject on error; on dev trust the hash
+    if (IS_MAINNET) return false;
     if (!process.env.VERIFY_ONCHAIN) return true;
     return false;
   }
@@ -78,21 +82,19 @@ export async function paywall(req: Request, res: Response, next: NextFunction) {
       (req as any).paymentTx = txHash;
       return next();
     }
-    res
-      .status(402)
-      .json({ error: "Invalid or already used payment transaction" });
+    res.status(402).json({ error: "Invalid or already used payment transaction" });
     return;
   }
 
   res.status(402).json({
     error: "Payment Required",
-    message: "This generation requires payment. $0.05 USDC on Celo Sepolia.",
+    message: `This generation requires payment. $0.05 USDC on ${NETWORK_NAME}.`,
     payment: {
       amount: "50000",
       asset: "USDC",
-      assetAddress: "0x01C5C0122039549AD1493B8220cABEdD739BC44E",
-      network: "celo-sepolia",
-      chainId: 11142220,
+      assetAddress: USDC_ADDRESS,
+      network: NETWORK_NAME,
+      chainId: CHAIN_ID,
       payTo: MERCHANT_ADDRESS,
     },
   });

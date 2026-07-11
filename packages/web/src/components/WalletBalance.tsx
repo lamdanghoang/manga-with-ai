@@ -1,8 +1,6 @@
 "use client";
 import { useAccount, useReadContract, useBalance } from "wagmi";
-import { celoSepolia } from "@/lib/wagmi";
-
-const USDC_ADDRESS = "0x01C5C0122039549AD1493B8220cABEdD739BC44E" as const;
+import { celoSepolia, USDC_ADDRESS } from "@/lib/wagmi";
 const ERC20_ABI = [
   {
     name: "balanceOf",
