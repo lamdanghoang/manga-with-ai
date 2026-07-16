@@ -9,6 +9,7 @@ export default function PublicReaderPage() {
   const [chapters, setChapters] = useState<any[]>([]);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [viewCount, setViewCount] = useState(0);
   const [copied, setCopied] = useState(false);
   const API = getApiUrl();
 
@@ -32,6 +33,7 @@ export default function PublicReaderPage() {
       .then((data) => {
         setStory(data);
         setLikeCount(Number(data.metrics?.likeCount || 0));
+        setViewCount(Number(data.metrics?.viewCount || 0));
         if (data.chapters?.length) {
           Promise.all(data.chapters.map((ch: any) => fetch(`${API}/v1/public/stories/${slug}/chapters/${ch.id}`).then(r => r.json()))).then(setChapters);
         }
@@ -81,17 +83,21 @@ export default function PublicReaderPage() {
         </div>
       )}
 
-      {/* Like / Share */}
-      <div className="flex items-center gap-4 px-1">
-        <button onClick={handleLike} className={`flex items-center gap-1 font-label text-[11px] ${liked ? 'text-red-600' : 'text-on-surface'}`}>
-          <span className="material-symbols-outlined text-[18px]">{liked ? 'favorite' : 'favorite_border'}</span>
+      {/* Like / Share / Views */}
+      <div className="flex items-center gap-4 px-3 py-2">
+        <button onClick={handleLike} className={`flex items-center gap-1.5 font-label text-[12px] ${liked ? 'text-red-600' : 'text-on-surface'}`}>
+          <span className="material-symbols-outlined text-[20px]">{liked ? 'favorite' : 'favorite_border'}</span>
           <span>{liked ? 'Liked' : 'Like'}</span>
           {likeCount > 0 && <span className="text-[10px] text-secondary">({likeCount})</span>}
         </button>
-        <button onClick={handleShare} className="flex items-center gap-1 font-label text-[11px] text-on-surface ml-auto">
-          <span className="material-symbols-outlined text-[18px]">share</span>
+        <button onClick={handleShare} className="flex items-center gap-1.5 font-label text-[12px] text-on-surface">
+          <span className="material-symbols-outlined text-[20px]">share</span>
           <span>{copied ? 'Copied!' : 'Share'}</span>
         </button>
+        <span className="flex items-center gap-1 font-label text-[11px] text-secondary ml-auto">
+          <span className="material-symbols-outlined text-[16px]">visibility</span>
+          {viewCount}
+        </span>
       </div>
     </main>
   );
