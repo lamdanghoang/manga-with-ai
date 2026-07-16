@@ -1,18 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getApiUrl, api } from "@/lib/api";
-import { useAuth } from "@/context/AuthContext";
+import { getApiUrl } from "@/lib/api";
 
 export default function Home() {
   const [stories, setStories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"latest" | "popular">("latest");
-  const [commentOpen, setCommentOpen] = useState<string | null>(null);
-  const [comments, setComments] = useState<any[]>([]);
-  const [commentText, setCommentText] = useState("");
-  const [posting, setPosting] = useState(false);
-  const { isAuthed } = useAuth();
   const API = getApiUrl();
 
   useEffect(() => {
@@ -57,44 +51,6 @@ export default function Home() {
           ),
         ),
     );
-  }
-
-  function toggleComments(slug: string, e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (commentOpen === slug) {
-      setCommentOpen(null);
-      return;
-    }
-    setCommentOpen(slug);
-    setComments([]);
-    fetch(`${API}/v1/public/stories/${slug}/comments`)
-      .then((r) => r.json())
-      .then((d) => setComments(d.items || []))
-      .catch(() => setComments([]));
-  }
-
-  async function postComment(slug: string) {
-    if (!commentText.trim() || posting) return;
-    setPosting(true);
-    try {
-      const c = await api<any>(`/v1/public/stories/${slug}/comments`, {
-        method: "POST",
-        body: JSON.stringify({ text: commentText.trim() }),
-      });
-      setComments((prev) => [c, ...prev]);
-      setCommentText("");
-      setStories((prev) =>
-        prev.map((s) =>
-          s.publicSlug === slug
-            ? { ...s, commentCount: (s.commentCount || 0) + 1 }
-            : s,
-        ),
-      );
-    } catch {
-      /* ignore */
-    }
-    setPosting(false);
   }
 
   function shortAddr(addr: string) {
