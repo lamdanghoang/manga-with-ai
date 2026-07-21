@@ -294,3 +294,14 @@ model CreditPurchase {
 
   @@map("credit_purchases")
 }
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  event     String   @db.VarChar(100)
+  props     Json?
+  userId    String?  @map("user_id") @db.Uuid
+  sessionId String?  @map("session_id") @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("analytics_events")
+}
