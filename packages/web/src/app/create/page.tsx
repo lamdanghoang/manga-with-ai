@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { RequireAuth } from "@/components/RequireAuth";
 import { PayModal } from "@/components/PayModal";
 import { PackageModal } from "@/components/PackageModal";
+import { trackEvent } from "@/lib/analytics";
 
 interface CharRef {
   name: string;
@@ -101,6 +102,7 @@ export default function CreatePage() {
     setLoading(true);
     setErrorMsg("");
     setStatus("ESTABLISHING LEGEND...");
+    trackEvent('create_story', { style: selectedStyle, panelCount });
 
     const tx = txOverride || paymentTx;
 
@@ -139,6 +141,7 @@ export default function CreatePage() {
         );
         if (job.status === "completed") {
           clearInterval(interval);
+          trackEvent('story_completed', { storyId: res.storyId });
           router.push(`/story/${res.storyId}`);
         } else if (job.status === "failed") {
           clearInterval(interval);

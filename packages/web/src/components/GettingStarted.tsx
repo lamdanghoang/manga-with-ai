@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 const DISMISSED_KEY = "manga_onboarding_dismissed";
 
@@ -14,6 +15,7 @@ export function GettingStarted() {
 
   function dismiss() {
     localStorage.setItem(DISMISSED_KEY, "1");
+    trackEvent('onboarding_dismiss');
     setVisible(false);
   }
 

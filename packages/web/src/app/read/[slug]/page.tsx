@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getApiUrl } from '@/lib/api';
+import { trackEvent } from '@/lib/analytics';
 
 export default function PublicReaderPage() {
   const { slug } = useParams();
@@ -17,10 +18,12 @@ export default function PublicReaderPage() {
     if (liked) return;
     setLiked(true);
     setLikeCount(prev => prev + 1);
+    trackEvent('like_story', { slug });
     fetch(`${API}/v1/public/stories/${slug}/like`, { method: 'POST' }).catch(() => {});
   }
 
   async function handleShare() {
+    trackEvent('share_story', { slug });
     fetch(`${API}/v1/public/stories/${slug}/share`, { method: 'POST' }).catch(() => {});
     await navigator.clipboard.writeText(window.location.href);
     setCopied(true);

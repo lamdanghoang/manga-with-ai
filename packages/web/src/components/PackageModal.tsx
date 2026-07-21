@@ -10,6 +10,7 @@ import {
 import { parseUnits } from "viem";
 import { celoSepolia, USDC_ADDRESS, MERCHANT_WALLET, DEPOSIT_LINK, ATTRIBUTION_TAG } from "@/lib/wagmi";
 import { api } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 
 const ERC20_ABI = [
   {
@@ -113,6 +114,7 @@ export function PackageModal({ isOpen, onClose, onSuccess }: PackageModalProps) 
       });
 
       setStep("done");
+      trackEvent('buy_package', { package: selectedPkg, price: pkg.price });
       setTimeout(() => onSuccess(), 1500);
     } catch (err: any) {
       setError(err.shortMessage || err.message || "Payment failed");

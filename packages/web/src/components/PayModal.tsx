@@ -9,6 +9,7 @@ import {
 import { parseUnits } from "viem";
 import { celoSepolia, USDC_ADDRESS, MERCHANT_WALLET, DEPOSIT_LINK, ATTRIBUTION_TAG } from "@/lib/wagmi";
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 const PRICE_USDC = "0.05"; // $0.05
 
@@ -72,6 +73,7 @@ export function PayModal({ isOpen, onClose, onSuccess }: PayModalProps) {
       // Wait for tx confirmation before notifying success
       await publicClient!.waitForTransactionReceipt({ hash: txHash });
       setPaying(false);
+      trackEvent('pay_per_use', { amount: '0.05' });
       onSuccess(txHash);
     } catch (err: any) {
       setPaying(false);

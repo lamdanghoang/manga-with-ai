@@ -8,6 +8,7 @@ import {
 } from "wagmi";
 import { celoSepolia, activeContracts as contracts, ATTRIBUTION_TAG } from "@/lib/wagmi";
 import { MANGA_NFT_ABI } from "@manga-with-ai/shared";
+import { trackEvent } from "@/lib/analytics";
 
 const ERC20_ABI = [
   {
@@ -107,6 +108,7 @@ export function MintNFTButton({
         dataSuffix: ATTRIBUTION_TAG,
       });
       setTxHash(hash);
+      trackEvent('mint_collectible', { metadataURI });
       onMinted?.(BigInt(0), hash);
     } catch (err: any) {
       setError(err.shortMessage || err.message || "Save failed");

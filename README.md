@@ -17,9 +17,9 @@ An autonomous AI agent that generates manga from text prompts, handles stablecoi
 
 ## Live Demo
 
-- **App**: [manga-with-ai-web.vercel.app](https://manga-with-ai-web.vercel.app)
+- **App**: [www.mangawithai.site](https://www.mangawithai.site)
 - **API**: [mangawithai.duckdns.org](https://mangawithai.duckdns.org/health)
-- **API Docs**: [/api-docs](https://manga-with-ai-web.vercel.app/api-docs)
+- **API Docs**: [/api-docs](https://www.mangawithai.site/api-docs)
 
 ## What It Does
 
@@ -89,15 +89,15 @@ Every user interaction generates real on-chain transactions:
 
 ## For AI Agents
 
-> Full interactive docs: [manga-with-ai-web.vercel.app/api-docs](https://manga-with-ai-web.vercel.app/api-docs)
+> Full interactive docs: [www.mangawithai.site/api-docs](https://www.mangawithai.site/api-docs)
 
 ### Agent Discovery
 
 ```bash
 # Machine-readable metadata
 GET https://mangawithai.duckdns.org/.well-known/agent.json
-GET https://manga-with-ai-web.vercel.app/llms.txt
-GET https://manga-with-ai-web.vercel.app/.well-known/ai-plugin.json
+GET https://www.mangawithai.site/llms.txt
+GET https://www.mangawithai.site/.well-known/ai-plugin.json
 ```
 
 ### Complete Integration Flow
