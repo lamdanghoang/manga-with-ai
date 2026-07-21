@@ -7,7 +7,7 @@ import {
   useReadContract,
 } from "wagmi";
 import { parseUnits } from "viem";
-import { celoSepolia, activeContracts as contracts } from "@/lib/wagmi";
+import { celoSepolia, activeContracts as contracts, ATTRIBUTION_TAG } from "@/lib/wagmi";
 import {
   MARKETPLACE_ABI,
   MANGA_NFT_ABI,
@@ -85,6 +85,7 @@ export function ListForSaleModal({
           functionName: "setApprovalForAll",
           args: [contracts.marketplace, true],
           chainId: celoSepolia.id,
+          dataSuffix: ATTRIBUTION_TAG,
         });
         setApproveTxHash(tx);
       } else {
@@ -106,6 +107,7 @@ export function ListForSaleModal({
         functionName: "list",
         args: [tokenId, selectedToken.address, priceInUnits],
         chainId: celoSepolia.id,
+        dataSuffix: ATTRIBUTION_TAG,
       });
       setListTxHash(tx);
     } catch (err: any) {

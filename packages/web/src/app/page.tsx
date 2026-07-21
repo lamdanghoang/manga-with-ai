@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getApiUrl } from "@/lib/api";
+import { GettingStarted } from "@/components/GettingStarted";
 
 export default function Home() {
   const [stories, setStories] = useState<any[]>([]);
@@ -70,6 +71,8 @@ export default function Home() {
 
   return (
     <main className="pt-4 px-4 max-w-lg mx-auto">
+      <GettingStarted />
+
       {/* Filter Tabs */}
       <div className="flex gap-2 mb-4">
         <button

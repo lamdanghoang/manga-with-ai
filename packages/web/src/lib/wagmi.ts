@@ -3,6 +3,9 @@ import { http, createConfig } from "wagmi";
 import { celo } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
 import { defineChain } from "viem";
+import { toDataSuffix } from "@celo/attribution-tags";
+
+export const ATTRIBUTION_TAG = toDataSuffix("mangawithai");
 
 // Celo Sepolia Testnet (chain ID 11142220)
 const celoSepoliaChain = defineChain({

@@ -8,7 +8,7 @@ import {
   usePublicClient,
 } from "wagmi";
 import { parseUnits } from "viem";
-import { celoSepolia, USDC_ADDRESS, MERCHANT_WALLET, DEPOSIT_LINK } from "@/lib/wagmi";
+import { celoSepolia, USDC_ADDRESS, MERCHANT_WALLET, DEPOSIT_LINK, ATTRIBUTION_TAG } from "@/lib/wagmi";
 import { api } from "@/lib/api";
 
 const ERC20_ABI = [
@@ -97,6 +97,7 @@ export function PackageModal({ isOpen, onClose, onSuccess }: PackageModalProps) 
         functionName: "transfer",
         args: [MERCHANT_WALLET, parseUnits(pkg.price, 6)],
         chainId: celoSepolia.id,
+        dataSuffix: ATTRIBUTION_TAG,
       });
 
       setStep("confirming");

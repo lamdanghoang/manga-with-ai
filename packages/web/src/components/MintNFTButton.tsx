@@ -6,7 +6,7 @@ import {
   useWaitForTransactionReceipt,
   useReadContract,
 } from "wagmi";
-import { celoSepolia, activeContracts as contracts } from "@/lib/wagmi";
+import { celoSepolia, activeContracts as contracts, ATTRIBUTION_TAG } from "@/lib/wagmi";
 import { MANGA_NFT_ABI } from "@manga-with-ai/shared";
 
 const ERC20_ABI = [
@@ -93,6 +93,7 @@ export function MintNFTButton({
           functionName: "approve",
           args: [contracts.mangaNFT, fee],
           chainId: celoSepolia.id,
+          dataSuffix: ATTRIBUTION_TAG,
         });
       }
 
@@ -103,6 +104,7 @@ export function MintNFTButton({
         functionName: "mint",
         args: [address, metadataURI],
         chainId: celoSepolia.id,
+        dataSuffix: ATTRIBUTION_TAG,
       });
       setTxHash(hash);
       onMinted?.(BigInt(0), hash);

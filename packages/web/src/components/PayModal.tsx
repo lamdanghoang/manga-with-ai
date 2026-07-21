@@ -7,7 +7,7 @@ import {
   usePublicClient,
 } from "wagmi";
 import { parseUnits } from "viem";
-import { celoSepolia, USDC_ADDRESS, MERCHANT_WALLET, DEPOSIT_LINK } from "@/lib/wagmi";
+import { celoSepolia, USDC_ADDRESS, MERCHANT_WALLET, DEPOSIT_LINK, ATTRIBUTION_TAG } from "@/lib/wagmi";
 import { useState } from "react";
 
 const PRICE_USDC = "0.05"; // $0.05
@@ -67,6 +67,7 @@ export function PayModal({ isOpen, onClose, onSuccess }: PayModalProps) {
         functionName: "transfer",
         args: [MERCHANT_WALLET, parseUnits(PRICE_USDC, 6)],
         chainId: celoSepolia.id,
+        dataSuffix: ATTRIBUTION_TAG,
       });
       // Wait for tx confirmation before notifying success
       await publicClient!.waitForTransactionReceipt({ hash: txHash });

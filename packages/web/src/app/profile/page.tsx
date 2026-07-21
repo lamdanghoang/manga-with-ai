@@ -116,6 +116,13 @@ export default function ProfilePage() {
       <div className="mt-6 border-4 border-dashed border-primary/30 h-20 speed-lines flex items-center justify-center">
         <p className="font-display text-sm text-primary/30 uppercase animate-pulse">More works coming soon...</p>
       </div>
+
+      {/* Legal */}
+      <div className="mt-6 text-center">
+        <Link href="/terms" className="font-label text-[10px] text-secondary hover:text-on-surface">Terms & Conditions</Link>
+        <span className="text-[10px] text-secondary mx-2">·</span>
+        <Link href="/privacy" className="font-label text-[10px] text-secondary hover:text-on-surface">Privacy Policy</Link>
+      </div>
     </main>
     </RequireAuth>
   );
