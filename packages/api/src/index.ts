@@ -1,4 +1,5 @@
 import "dotenv/config";
+import "./instrument"; // Sentry must be imported before other modules
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // BigInt JSON serialization
@@ -122,6 +123,10 @@ app.use("/v1", leaderboardRouter);
 app.use("/v1", stylesRouter);
 app.use("/v1", creditsRouter);
 app.use("/v1", analyticsRouter);
+
+// Sentry error handler (must be after all routes)
+import * as Sentry from "@sentry/node";
+Sentry.setupExpressErrorHandler(app);
 
 const PORT = process.env.API_PORT || 4000;
 app.listen(PORT, () => {
