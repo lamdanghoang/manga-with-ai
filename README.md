@@ -48,8 +48,8 @@ User Prompt → AI Agent → Manga Page → NFT Mint → Marketplace
 
 | Contract                      | Address                                                                                                                        |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| MangaNFT (ERC-721 + ERC-2981) | [`0xC92AA61585e955D6B12735b5D90bca49BcfFf8FA`](https://sepolia.celoscan.io/address/0xC92AA61585e955D6B12735b5D90bca49BcfFf8FA) |
-| MangaMarketplace              | [`0xD7420dD58505E5cf10Bb9e91Bf4A0B96a8d7498d`](https://sepolia.celoscan.io/address/0xD7420dD58505E5cf10Bb9e91Bf4A0B96a8d7498d) |
+| MangaNFT (ERC-721 + ERC-2981) | [`0x85b4d81175CD63d39E1964AFFF09efC2B824DdFF`](https://sepolia.celoscan.io/address/0x85b4d81175CD63d39E1964AFFF09efC2B824DdFF) |
+| MangaMarketplace              | [`0x2555a1b93CFFBec10Af4E9685bA52Ec198032E05`](https://sepolia.celoscan.io/address/0x2555a1b93CFFBec10Af4E9685bA52Ec198032E05) |
 
 **Supported Payment Tokens**: USDC, USDT, USDm on Celo
 
@@ -193,7 +193,7 @@ import { writeContract } from "wagmi/actions";
 
 // Mint manga as NFT (Celo Sepolia, chain 11142220)
 const tx = await writeContract({
-  address: "0xC92AA61585e955D6B12735b5D90bca49BcfFf8FA", // MangaNFT
+  address: "0x85b4d81175CD63d39E1964AFFF09efC2B824DdFF", // MangaNFT
   abi: [
     {
       name: "mint",
