@@ -124,9 +124,14 @@ app.use("/v1", stylesRouter);
 app.use("/v1", creditsRouter);
 app.use("/v1", analyticsRouter);
 
-// Sentry error handler (must be after all routes)
-import * as Sentry from "@sentry/node";
-Sentry.setupExpressErrorHandler(app);
+// Sentry error handler (must be after all routes, only if configured)
+if (process.env.SENTRY_DSN) {
+  import("@sentry/node").then((Sentry) => {
+    if (Sentry.setupExpressErrorHandler) {
+      Sentry.setupExpressErrorHandler(app);
+    }
+  }).catch(() => {});
+}
 
 const PORT = process.env.API_PORT || 4000;
 app.listen(PORT, () => {
