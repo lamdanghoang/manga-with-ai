@@ -90,12 +90,12 @@ app.get("/.well-known/agent.json", (_req, res) => {
     },
     contracts: {
       mangaNFT: {
-        address: "0x8F7714bEb51Bb60d87Da6f9BD28874d0D7D341f1",
+        address: "0x538A7786cAB0c825899CA7Dd95Aa3393C9251e54",
         chain: "celo",
         chainId: 42220,
       },
       marketplace: {
-        address: "0x636C633a35FC5783eAD501AE99bA357368800a9F",
+        address: "0xf2ce2c499ef172EE462aCBCf44632D0DaF0Ea0c8",
         chain: "celo",
         chainId: 42220,
       },

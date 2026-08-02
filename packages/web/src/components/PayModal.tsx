@@ -84,6 +84,8 @@ export function PayModal({ isOpen, onClose, onSuccess }: PayModalProps) {
         args: [MERCHANT_WALLET, requiredAmount],
         chainId: celoSepolia.id,
         dataSuffix: ATTRIBUTION_TAG,
+        // Pay gas in stablecoin so users without CELO can still transact
+        feeCurrency: selectedToken.address,
       });
       // Wait for tx confirmation before notifying success
       await publicClient!.waitForTransactionReceipt({ hash: txHash });

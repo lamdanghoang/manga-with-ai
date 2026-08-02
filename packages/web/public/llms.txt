@@ -17,8 +17,8 @@ MangaWithAI is an autonomous AI agent that generates manga from text prompts, ha
 - micropayments: Accept x402 payments for content generation
 
 ## Smart Contracts (Celo Mainnet - 42220)
-- MangaNFT: 0x8F7714bEb51Bb60d87Da6f9BD28874d0D7D341f1
-- MangaMarketplace: 0x636C633a35FC5783eAD501AE99bA357368800a9F
+- MangaNFT: 0x538A7786cAB0c825899CA7Dd95Aa3393C9251e54
+- MangaMarketplace: 0xf2ce2c499ef172EE462aCBCf44632D0DaF0Ea0c8
 
 ## API Endpoints
 - Base URL: https://mangawithai.duckdns.org

@@ -100,6 +100,8 @@ export function PackageModal({ isOpen, onClose, onSuccess }: PackageModalProps) 
         args: [MERCHANT_WALLET, parseUnits(pkg.price, selectedToken.decimals)],
         chainId: celoSepolia.id,
         dataSuffix: ATTRIBUTION_TAG,
+        // Pay gas in stablecoin so users without CELO can still transact
+        feeCurrency: selectedToken.address,
       });
 
       setStep("confirming");

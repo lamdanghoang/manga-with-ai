@@ -37,10 +37,12 @@ contract MangaNFT is ERC721, ERC721URIStorage, ERC721Royalty, Ownable, Reentranc
 
     event Minted(uint256 indexed tokenId, address indexed creator, string tokenURI);
     event MintFeeUpdated(uint256 newFee);
-    event FeeTokenUpdated(address newToken);
-    event FeeRecipientUpdated(address newRecipient);
+    event FeeTokenUpdated(address indexed newToken);
+    event FeeRecipientUpdated(address indexed newRecipient);
 
     constructor(address _feeToken, address _feeRecipient) ERC721("MangaWithAI", "MANGA") Ownable(msg.sender) {
+        require(_feeToken != address(0), "Invalid token");
+        require(_feeRecipient != address(0), "Invalid recipient");
         feeToken = IERC20(_feeToken);
         feeRecipient = _feeRecipient;
     }

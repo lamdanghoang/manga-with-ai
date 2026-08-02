@@ -95,6 +95,8 @@ export function MintNFTButton({
           args: [contracts.mangaNFT, fee],
           chainId: celoSepolia.id,
           dataSuffix: ATTRIBUTION_TAG,
+          // Pay gas in the same stablecoin so users without CELO can still transact
+          feeCurrency: feeTokenAddress as `0x${string}`,
         });
       }
 
@@ -106,6 +108,8 @@ export function MintNFTButton({
         args: [address, metadataURI],
         chainId: celoSepolia.id,
         dataSuffix: ATTRIBUTION_TAG,
+        // Pay gas in stablecoin (fee abstraction) — fall back to CELO if no fee token set
+        feeCurrency: feeTokenAddress as `0x${string}` | undefined,
       });
       setTxHash(hash);
       trackEvent('mint_collectible', { metadataURI });

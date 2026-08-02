@@ -1,25 +1,10 @@
 "use client";
 import { http, createConfig } from "wagmi";
-import { celo } from "wagmi/chains";
+import { celo, celoSepolia as celoSepoliaChain } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
-import { defineChain } from "viem";
 import { toDataSuffix } from "@celo/attribution-tags";
 
 export const ATTRIBUTION_TAG = toDataSuffix("mangawithai");
-
-// Celo Sepolia Testnet (chain ID 11142220)
-const celoSepoliaChain = defineChain({
-  id: 11142220,
-  name: "Celo Sepolia",
-  nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
-  rpcUrls: {
-    default: { http: ["https://forno.celo-sepolia.celo-testnet.org"] },
-  },
-  blockExplorers: {
-    default: { name: "Celoscan", url: "https://sepolia.celoscan.io" },
-  },
-  testnet: true,
-});
 
 export const IS_MAINNET = process.env.NEXT_PUBLIC_CHAIN === "mainnet";
 
@@ -37,6 +22,14 @@ export const config = createConfig({
     [celo.id]: http(),
   },
 });
+
+// Register this config as the default for wagmi's hooks so TypeScript can
+// infer chain-specific properties (e.g. Celo's `feeCurrency`) end-to-end.
+declare module "wagmi" {
+  interface Register {
+    config: typeof config;
+  }
+}
 
 // Active contracts based on network
 import { CONTRACTS } from "@manga-with-ai/shared";
