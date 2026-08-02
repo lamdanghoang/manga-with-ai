@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { sanitizeInput, containsCode } from "@/lib/sanitize";
 import { RequireAuth } from "@/components/RequireAuth";
 import { PayModal } from "@/components/PayModal";
 import { PackageModal } from "@/components/PackageModal";
@@ -26,6 +27,7 @@ interface StyleTemplate {
 export default function CreatePage() {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
+  const [promptWarning, setPromptWarning] = useState("");
   const [panelCount, setPanelCount] = useState<4 | 6 | 8>(4);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
@@ -71,7 +73,7 @@ export default function CreatePage() {
 
   function updateCharRef(index: number, field: string, value: string) {
     const updated = [...charRefs];
-    (updated[index] as any)[field] = value;
+    (updated[index] as any)[field] = field === "name" ? sanitizeInput(value) : value;
     setCharRefs(updated);
   }
 
@@ -215,11 +217,23 @@ export default function CreatePage() {
             </label>
             <textarea
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (containsCode(raw)) {
+                  setPromptWarning("Code/scripts are not allowed. Please describe your story in plain text.");
+                  setPrompt(sanitizeInput(raw));
+                } else {
+                  setPromptWarning("");
+                  setPrompt(raw);
+                }
+              }}
               rows={4}
               placeholder="Describe hair color, outfit, setting, plot... (e.g., 'Spiky blue hair, red scarf, Neo-Tokyo cyberpunk streets at midnight')"
               className="w-full border-2 border-on-surface bg-surface-container font-body p-3 focus:outline-none focus:border-4 resize-none text-sm"
             />
+            {promptWarning && (
+              <p className="text-[10px] text-red-500 mt-1">{promptWarning}</p>
+            )}
           </div>
 
           {/* Character References */}
@@ -361,7 +375,8 @@ export default function CreatePage() {
                   setShowPackageModal(true);
                   return;
                 }
-                setCustomStylePrompt(e.target.value);
+                const raw = e.target.value;
+                setCustomStylePrompt(containsCode(raw) ? sanitizeInput(raw) : raw);
               }}
               rows={2}
               placeholder={

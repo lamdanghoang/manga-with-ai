@@ -104,6 +104,7 @@ router.post(
     }
 
     // Verify payment on-chain
+    let paidTokenSymbol = "USDC";
     try {
       const { createPublicClient, http, defineChain } = await import("viem");
       const { celo } = await import("viem/chains");
@@ -125,29 +126,46 @@ router.post(
         return;
       }
 
-      // Verify USDC transfer amount
-      const USDC = IS_MAINNET
-        ? "0xceba9300f2b948710d2653dd7b07f33a8b32118c"
-        : "0x01c5c0122039549ad1493b8220cabedd739bc44e";
+      // Verify payment with any accepted stablecoin
+      const ACCEPTED = IS_MAINNET
+        ? [
+            "0xceba9300f2b948710d2653dd7b07f33a8b32118c", // USDC
+            "0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e", // USDT
+            "0x765de816845861e75a25fca122bb6898b8b1282a", // cUSD
+          ]
+        : [
+            "0x01c5c0122039549ad1493b8220cabedd739bc44e", // USDC
+            "0xd077a400968890eacc75cdc901f0356c943e4fdb", // USDT
+            "0xde9e4c3ce781b4ba68120d6261cbad65ce0ab00b", // USDm
+          ];
       const MERCHANT = (process.env.MERCHANT_WALLET || "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8").toLowerCase();
-      const REQUIRED = validPlans[plan].amount;
+      const REQUIRED_6 = validPlans[plan].amount; // 6-decimal amount
+      const REQUIRED_18 = validPlans[plan].amount * BigInt(1e12); // 18-decimal equivalent
 
       const transferLog = receipt.logs.find(
         (log) =>
-          log.address.toLowerCase() === USDC &&
+          ACCEPTED.includes(log.address.toLowerCase()) &&
           log.topics[2]?.toLowerCase().includes(MERCHANT.slice(2)),
       );
 
       if (!transferLog) {
-        res.status(400).json({ error: "No USDC transfer to merchant found" });
+        res.status(400).json({ error: "No stablecoin transfer to merchant found" });
         return;
       }
 
       const amount = BigInt(transferLog.data);
-      if (amount < REQUIRED) {
-        res.status(400).json({ error: `Insufficient: need $${Number(REQUIRED) / 1e6} USDC` });
+      // Check against correct decimals (cUSD/USDm = 18 decimals, USDC/USDT = 6)
+      const is18Decimals = transferLog.address.toLowerCase() === ACCEPTED[2];
+      const required = is18Decimals ? REQUIRED_18 : REQUIRED_6;
+      if (amount < required) {
+        res.status(400).json({ error: `Insufficient payment for ${plan} plan` });
         return;
       }
+
+      // Determine which token was used
+      paidTokenSymbol = ACCEPTED.indexOf(transferLog.address.toLowerCase()) === 2
+        ? (IS_MAINNET ? "cUSD" : "USDm")
+        : ACCEPTED.indexOf(transferLog.address.toLowerCase()) === 1 ? "USDT" : "USDC";
     } catch (verifyErr: any) {
       res.status(400).json({ error: "Verify failed: " + (verifyErr.message || "").slice(0, 100) });
       return;
@@ -160,6 +178,7 @@ router.post(
         userId: req.userId!,
         plan,
         paymentTx,
+        paymentToken: paidTokenSymbol,
         expiresAt,
       },
     });

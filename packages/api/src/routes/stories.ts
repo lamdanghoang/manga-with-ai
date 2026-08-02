@@ -54,6 +54,7 @@ router.post(
           stylePreset,
           panelCount,
           paymentTx: (req as any).paymentTx || null,
+          paymentToken: (req as any).paymentToken || null,
         },
       },
     });
@@ -218,6 +219,7 @@ router.post(
           prompt,
           branchMode: branchMode || "canon",
           paymentTx: (req as any).paymentTx || null,
+          paymentToken: (req as any).paymentToken || null,
         },
       },
     });

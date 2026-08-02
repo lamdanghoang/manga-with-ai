@@ -8,7 +8,7 @@ import {
   usePublicClient,
 } from "wagmi";
 import { parseUnits } from "viem";
-import { celoSepolia, USDC_ADDRESS, MERCHANT_WALLET, DEPOSIT_LINK, ATTRIBUTION_TAG } from "@/lib/wagmi";
+import { celoSepolia, PAYMENT_TOKENS, MERCHANT_WALLET, DEPOSIT_LINK, ATTRIBUTION_TAG, PaymentToken } from "@/lib/wagmi";
 import { api } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 
@@ -67,11 +67,12 @@ interface PackageModalProps {
 export function PackageModal({ isOpen, onClose, onSuccess }: PackageModalProps) {
   const { address } = useAccount();
   const [selectedPkg, setSelectedPkg] = useState<PackageKey>("creator");
+  const [selectedToken, setSelectedToken] = useState<PaymentToken>(PAYMENT_TOKENS[0]);
   const [step, setStep] = useState<"select" | "paying" | "confirming" | "done">("select");
   const [error, setError] = useState("");
 
   const { data: balance } = useReadContract({
-    address: USDC_ADDRESS,
+    address: selectedToken.address,
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
@@ -93,10 +94,10 @@ export function PackageModal({ isOpen, onClose, onSuccess }: PackageModalProps) 
       try { await switchChainAsync({ chainId: celoSepolia.id }); } catch {}
 
       const txHash = await writeContractAsync({
-        address: USDC_ADDRESS,
+        address: selectedToken.address,
         abi: ERC20_ABI,
         functionName: "transfer",
-        args: [MERCHANT_WALLET, parseUnits(pkg.price, 6)],
+        args: [MERCHANT_WALLET, parseUnits(pkg.price, selectedToken.decimals)],
         chainId: celoSepolia.id,
         dataSuffix: ATTRIBUTION_TAG,
       });
@@ -124,10 +125,10 @@ export function PackageModal({ isOpen, onClose, onSuccess }: PackageModalProps) 
 
   if (!isOpen) return null;
 
-  const balanceFormatted = balance ? (Number(balance) / 1e6).toFixed(2) : "0.00";
+  const balanceFormatted = balance ? (Number(balance) / (10 ** selectedToken.decimals)).toFixed(selectedToken.decimals === 18 ? 4 : 2) : "0.00";
   const pkg = PACKAGES[selectedPkg];
   const insufficientBalance =
-    balance !== undefined && Number(balance) / 1e6 < Number(pkg.price);
+    balance !== undefined && Number(balance) / (10 ** selectedToken.decimals) < Number(pkg.price);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -189,8 +190,23 @@ export function PackageModal({ isOpen, onClose, onSuccess }: PackageModalProps) 
             </div>
 
             {/* Balance */}
+            <div className="flex gap-2 justify-center">
+              {PAYMENT_TOKENS.map((token) => (
+                <button
+                  key={token.symbol}
+                  onClick={() => { setSelectedToken(token); setError(""); }}
+                  className={`font-label text-[9px] font-bold uppercase px-2 py-1 border transition-all ${
+                    selectedToken.symbol === token.symbol
+                      ? "border-primary bg-primary text-white"
+                      : "border-on-surface/30 bg-white text-on-surface"
+                  }`}
+                >
+                  {token.symbol}
+                </button>
+              ))}
+            </div>
             <p className="text-center font-label text-[10px] text-secondary">
-              Balance: ${balanceFormatted} USDC
+              Balance: {balanceFormatted} {selectedToken.symbol}
             </p>
 
             {insufficientBalance && (

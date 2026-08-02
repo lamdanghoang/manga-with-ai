@@ -6,12 +6,12 @@ import {
   useSwitchChain,
   usePublicClient,
 } from "wagmi";
-import { parseUnits } from "viem";
-import { celoSepolia, USDC_ADDRESS, MERCHANT_WALLET, DEPOSIT_LINK, ATTRIBUTION_TAG } from "@/lib/wagmi";
+import { parseUnits, formatUnits } from "viem";
+import { celoSepolia, PAYMENT_TOKENS, MERCHANT_WALLET, DEPOSIT_LINK, ATTRIBUTION_TAG, PaymentToken } from "@/lib/wagmi";
 import { useState } from "react";
 import { trackEvent } from "@/lib/analytics";
 
-const PRICE_USDC = "0.05"; // $0.05
+const PRICE_DISPLAY = "0.05"; // $0.05
 
 const ERC20_ABI = [
   {
@@ -43,9 +43,11 @@ export function PayModal({ isOpen, onClose, onSuccess }: PayModalProps) {
   const { address, chain } = useAccount();
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState("");
+  const [selectedToken, setSelectedToken] = useState<PaymentToken>(PAYMENT_TOKENS[0]);
 
+  // Read balance of selected token
   const { data: balance } = useReadContract({
-    address: USDC_ADDRESS,
+    address: selectedToken.address,
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
@@ -56,36 +58,53 @@ export function PayModal({ isOpen, onClose, onSuccess }: PayModalProps) {
   const { switchChainAsync } = useSwitchChain();
   const publicClient = usePublicClient({ chainId: celoSepolia.id });
 
+  const requiredAmount = parseUnits(PRICE_DISPLAY, selectedToken.decimals);
+  const hasEnoughBalance = balance !== undefined && BigInt(balance as any) >= requiredAmount;
+
+  const balanceFormatted = balance
+    ? Number(formatUnits(BigInt(balance as any), selectedToken.decimals)).toFixed(selectedToken.decimals === 18 ? 4 : 2)
+    : "0.00";
+
   async function handlePay() {
+    // Pre-check balance before attempting transaction
+    if (!hasEnoughBalance) {
+      setError(`Insufficient ${selectedToken.symbol} balance. Please deposit funds first.`);
+      return;
+    }
+
     setPaying(true);
     setError("");
     try {
       // Skip switchChain in MiniPay (already on correct chain)
       try { await switchChainAsync({ chainId: celoSepolia.id }); } catch {}
       const txHash = await writeContractAsync({
-        address: USDC_ADDRESS,
+        address: selectedToken.address,
         abi: ERC20_ABI,
         functionName: "transfer",
-        args: [MERCHANT_WALLET, parseUnits(PRICE_USDC, 6)],
+        args: [MERCHANT_WALLET, requiredAmount],
         chainId: celoSepolia.id,
         dataSuffix: ATTRIBUTION_TAG,
       });
       // Wait for tx confirmation before notifying success
       await publicClient!.waitForTransactionReceipt({ hash: txHash });
       setPaying(false);
-      trackEvent('pay_per_use', { amount: '0.05' });
+      trackEvent('pay_per_use', { amount: PRICE_DISPLAY, token: selectedToken.symbol });
       onSuccess(txHash);
     } catch (err: any) {
       setPaying(false);
-      setError(err.shortMessage || err.message || "Payment failed");
+      const msg = err.shortMessage || err.message || "Payment failed";
+      // Friendly error for common issues
+      if (msg.includes("transfer amount exceeds balance") || msg.includes("exceeds balance")) {
+        setError(`Insufficient ${selectedToken.symbol} balance. Please deposit funds first.`);
+      } else if (msg.includes("user rejected") || msg.includes("User denied")) {
+        setError("Transaction cancelled.");
+      } else {
+        setError(msg);
+      }
     }
   }
 
   if (!isOpen) return null;
-
-  const balanceFormatted = balance
-    ? (Number(balance) / 1e6).toFixed(2)
-    : "0.00";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -97,22 +116,39 @@ export function PayModal({ isOpen, onClose, onSuccess }: PayModalProps) {
           Your free tier is used. Pay to continue creating manga.
         </p>
 
+        {/* Token Selector */}
+        <div className="flex gap-2 justify-center">
+          {PAYMENT_TOKENS.map((token) => (
+            <button
+              key={token.symbol}
+              onClick={() => { setSelectedToken(token); setError(""); }}
+              className={`font-label text-xs font-bold uppercase px-3 py-1.5 border-2 transition-all ${
+                selectedToken.symbol === token.symbol
+                  ? "border-primary bg-primary text-white"
+                  : "border-on-surface bg-surface-container text-on-surface hover:bg-surface-container-high"
+              }`}
+            >
+              {token.symbol}
+            </button>
+          ))}
+        </div>
+
         <div className="border-2 border-on-surface bg-surface-container p-3 text-center">
-          <p className="font-display text-2xl text-primary">$0.05</p>
+          <p className="font-display text-2xl text-primary">${PRICE_DISPLAY}</p>
           <p className="font-label text-xs text-secondary">
-            USDC
+            {selectedToken.symbol}
           </p>
-          <p className="font-label text-[10px] text-secondary mt-1">
-            Your balance: ${balanceFormatted} USDC
+          <p className={`font-label text-[10px] mt-1 ${hasEnoughBalance ? 'text-secondary' : 'text-red-500 font-bold'}`}>
+            Your balance: {balanceFormatted} {selectedToken.symbol}
           </p>
-          {balance !== undefined && Number(balance) < 50000 && (
+          {!hasEnoughBalance && (
             <a
               href={DEPOSIT_LINK}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block mt-2 font-label text-[10px] text-primary underline"
             >
-              {celoSepolia.id === 11142220 ? "Get testnet USDC →" : "Deposit USDC →"}
+              Deposit {selectedToken.symbol} →
             </a>
           )}
         </div>
@@ -122,17 +158,17 @@ export function PayModal({ isOpen, onClose, onSuccess }: PayModalProps) {
         {chain && chain.id !== celoSepolia.id && (
           <div className="border-2 border-yellow-400 bg-yellow-50 p-2 text-center">
             <p className="font-label text-[10px] text-yellow-700">
-              Wrong network. Please switch to Celo Sepolia in your wallet settings.
+              Wrong network. Please switch to Celo in your wallet settings.
             </p>
           </div>
         )}
 
         <button
           onClick={handlePay}
-          disabled={paying || (chain?.id !== celoSepolia.id)}
+          disabled={paying || !hasEnoughBalance || (chain?.id !== celoSepolia.id)}
           className="w-full bg-primary text-white font-display text-lg border-4 border-on-surface py-3 comic-shadow active:translate-x-1 active:translate-y-1 active:shadow-none transition-all uppercase disabled:opacity-50"
         >
-          {paying ? "CONFIRMING..." : "PAY & GENERATE"}
+          {paying ? "CONFIRMING..." : !hasEnoughBalance ? "INSUFFICIENT BALANCE" : "PAY & GENERATE"}
         </button>
         <button
           onClick={onClose}

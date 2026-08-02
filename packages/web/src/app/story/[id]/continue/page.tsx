@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { sanitizeInput, containsCode } from '@/lib/sanitize';
 import { RequireAuth } from '@/components/RequireAuth';
 import { PayModal } from '@/components/PayModal';
 
@@ -9,6 +10,7 @@ export default function ContinuePage() {
   const { id } = useParams();
   const router = useRouter();
   const [prompt, setPrompt] = useState('');
+  const [promptWarning, setPromptWarning] = useState('');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [showPayModal, setShowPayModal] = useState(false);
@@ -74,7 +76,19 @@ export default function ContinuePage() {
       <form onSubmit={handleSubmit} className="border-4 border-on-surface bg-white p-5 comic-shadow-lg space-y-5">
         <div className="relative pt-2">
           <label className="absolute -top-1 left-4 bg-white px-2 font-label text-xs border-2 border-on-surface z-10 font-bold uppercase">What happens next?</label>
-          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} placeholder="Describe the next scene or chapter..." className="w-full border-2 border-on-surface bg-surface-container font-body p-3 focus:outline-none focus:border-4 resize-none text-sm" />
+          <textarea value={prompt} onChange={(e) => {
+                const raw = e.target.value;
+                if (containsCode(raw)) {
+                  setPromptWarning("Code/scripts are not allowed. Describe your story in plain text.");
+                  setPrompt(sanitizeInput(raw));
+                } else {
+                  setPromptWarning("");
+                  setPrompt(raw);
+                }
+              }} rows={4} placeholder="Describe the next scene or chapter..." className="w-full border-2 border-on-surface bg-surface-container font-body p-3 focus:outline-none focus:border-4 resize-none text-sm" />
+          {promptWarning && (
+            <p className="text-[10px] text-red-500 mt-1">{promptWarning}</p>
+          )}
         </div>
         <button type="submit" disabled={!prompt.trim()} className="w-full bg-primary text-white font-display text-lg border-4 border-on-surface px-6 py-4 comic-shadow hover:bg-primary-container active:translate-x-1 active:translate-y-1 active:shadow-none transition-all uppercase disabled:opacity-40">
           GENERATE NEXT CHAPTER

@@ -8,17 +8,35 @@ const router = Router();
 
 const IS_MAINNET = process.env.CHAIN === 'mainnet';
 
-const USDC_ADDRESS = IS_MAINNET
-  ? '0xceba9300f2b948710d2653dd7b07f33a8b32118c'
-  : '0x01c5c0122039549ad1493b8220cabedd739bc44e';
+// Accepted payment tokens
+const ACCEPTED_TOKENS = IS_MAINNET
+  ? [
+      { symbol: "USDC", address: "0xceba9300f2b948710d2653dd7b07f33a8b32118c", decimals: 6 },
+      { symbol: "USDT", address: "0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e", decimals: 6 },
+      { symbol: "cUSD", address: "0x765de816845861e75a25fca122bb6898b8b1282a", decimals: 18 },
+    ]
+  : [
+      { symbol: "USDC", address: "0x01c5c0122039549ad1493b8220cabedd739bc44e", decimals: 6 },
+      { symbol: "USDT", address: "0xd077a400968890eacc75cdc901f0356c943e4fdb", decimals: 6 },
+      { symbol: "USDm", address: "0xde9e4c3ce781b4ba68120d6261cbad65ce0ab00b", decimals: 18 },
+    ];
+
+const ACCEPTED_TOKEN_ADDRESSES = ACCEPTED_TOKENS.map((t) => t.address);
 
 const MERCHANT_ADDRESS = (process.env.MERCHANT_WALLET || '0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8').toLowerCase();
 
 const PACKAGES = {
-  starter: { credits: 5, priceRaw: 3000000n, tier: 'starter' },
-  creator: { credits: 25, priceRaw: 5000000n, tier: 'creator' },
-  pro: { credits: 70, priceRaw: 10000000n, tier: 'pro' },
+  starter: { credits: 5, priceUsd: 3, tier: 'starter' },
+  creator: { credits: 25, priceUsd: 5, tier: 'creator' },
+  pro: { credits: 70, priceUsd: 10, tier: 'pro' },
 } as const;
+
+// Get required amount based on token decimals
+function getRequiredAmountForPackage(priceUsd: number, tokenAddress: string): bigint {
+  const token = ACCEPTED_TOKENS.find((t) => t.address === tokenAddress);
+  const decimals = token?.decimals || 6;
+  return BigInt(priceUsd) * BigInt(10 ** decimals);
+}
 
 const TIER_RANK: Record<string, number> = { free: 0, starter: 1, creator: 2, pro: 3 };
 
@@ -85,10 +103,12 @@ router.post('/user/buy-package', authMiddleware, async (req: AuthRequest, res: R
     return;
   }
 
-  // Find USDC Transfer to merchant
+  // Find Transfer to merchant from any accepted token
   let transferAmount = 0n;
+  let transferTokenAddress = '';
+  let transferTokenSymbol = '';
   for (const log of receipt.logs) {
-    if (log.address.toLowerCase() !== USDC_ADDRESS) continue;
+    if (!ACCEPTED_TOKEN_ADDRESSES.includes(log.address.toLowerCase())) continue;
     try {
       const decoded = decodeEventLog({
         abi: [transferEvent],
@@ -97,6 +117,8 @@ router.post('/user/buy-package', authMiddleware, async (req: AuthRequest, res: R
       });
       if ((decoded.args as any).to.toLowerCase() === MERCHANT_ADDRESS) {
         transferAmount = (decoded.args as any).value as bigint;
+        transferTokenAddress = log.address.toLowerCase();
+        transferTokenSymbol = ACCEPTED_TOKENS.find((t) => t.address === transferTokenAddress)?.symbol || 'USDC';
         break;
       }
     } catch {
@@ -104,8 +126,9 @@ router.post('/user/buy-package', authMiddleware, async (req: AuthRequest, res: R
     }
   }
 
-  if (transferAmount < pkg.priceRaw) {
-    res.status(400).json({ error: `Insufficient payment. Expected at least ${pkg.priceRaw.toString()} but got ${transferAmount.toString()}` });
+  const requiredAmount = getRequiredAmountForPackage(pkg.priceUsd, transferTokenAddress);
+  if (transferAmount < requiredAmount) {
+    res.status(400).json({ error: `Insufficient payment. Expected $${pkg.priceUsd} equivalent but received less.` });
     return;
   }
 
@@ -129,8 +152,9 @@ router.post('/user/buy-package', authMiddleware, async (req: AuthRequest, res: R
         userId: req.userId!,
         package: packageName,
         credits: pkg.credits,
-        amountUsd: String(Number(pkg.priceRaw) / 1_000_000),
+        amountUsd: String(pkg.priceUsd),
         paymentTx,
+        paymentToken: transferTokenSymbol,
       },
     }),
   ]);

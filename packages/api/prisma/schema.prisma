@@ -254,14 +254,15 @@ model StyleTemplate {
 }
 
 model UserSubscription {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
-  plan        String    @default("free") @db.VarChar(20) // free | vip
-  paymentTx   String?   @map("payment_tx")
-  startedAt   DateTime  @default(now()) @map("started_at")
-  expiresAt   DateTime? @map("expires_at")
-  isActive    Boolean   @default(true) @map("is_active")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  plan         String    @default("free") @db.VarChar(20) // free | vip
+  paymentTx    String?   @map("payment_tx")
+  paymentToken String?   @map("payment_token") @db.VarChar(10) // USDC | USDT | cUSD | USDm
+  startedAt    DateTime  @default(now()) @map("started_at")
+  expiresAt    DateTime? @map("expires_at")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -282,13 +283,14 @@ model Comment {
 }
 
 model CreditPurchase {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  package     String   @db.VarChar(20) // starter | creator | pro
-  credits     Int      // credits added
-  amountUsd   String   @map("amount_usd") @db.VarChar(10) // "0.50" | "2" | "5"
-  paymentTx   String   @unique @map("payment_tx")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  package      String   @db.VarChar(20) // starter | creator | pro
+  credits      Int      // credits added
+  amountUsd    String   @map("amount_usd") @db.VarChar(10) // "0.50" | "2" | "5"
+  paymentTx    String   @unique @map("payment_tx")
+  paymentToken String?  @map("payment_token") @db.VarChar(10) // USDC | USDT | cUSD | USDm
+  createdAt    DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
