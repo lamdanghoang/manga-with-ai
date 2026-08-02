@@ -22,9 +22,9 @@ describe("MangaNFT + Marketplace", function () {
     mockUSDC = await MockERC20.deploy("Mock USDC", "USDC", 6);
     await mockUSDC.waitForDeployment();
 
-    // Deploy MangaNFT
+    // Deploy MangaNFT (fee token = mock USDC, fee recipient = owner)
     const MangaNFT = await ethers.getContractFactory("MangaNFT");
-    nft = await MangaNFT.deploy();
+    nft = await MangaNFT.deploy(await mockUSDC.getAddress(), owner.address);
     await nft.waitForDeployment();
 
     // Deploy Marketplace
@@ -75,16 +75,21 @@ describe("MangaNFT + Marketplace", function () {
     });
 
     it("should enforce mint fee if set", async function () {
-      await nft.connect(owner).setMintFee(ethers.parseEther("0.01"));
+      const fee = ethers.parseUnits("1", 6); // 1 USDC
+      await nft.connect(owner).setMintFee(fee);
 
+      // No approval yet — SafeERC20 transferFrom should revert
       await expect(
         nft.connect(creator).mint(creator.address, TOKEN_URI),
-      ).to.be.revertedWith("Insufficient mint fee");
+      ).to.be.reverted;
 
-      await nft.connect(creator).mint(creator.address, TOKEN_URI, {
-        value: ethers.parseEther("0.01"),
-      });
+      // Approve fee token, then mint should succeed and pull the fee
+      await mockUSDC.mint(creator.address, fee);
+      await mockUSDC.connect(creator).approve(await nft.getAddress(), fee);
+
+      await nft.connect(creator).mint(creator.address, TOKEN_URI);
       expect(await nft.totalSupply()).to.equal(1);
+      expect(await mockUSDC.balanceOf(owner.address)).to.equal(fee);
     });
   });
 

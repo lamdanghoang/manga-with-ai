@@ -45,10 +45,12 @@ contract MangaMarketplace is Ownable, ReentrancyGuard {
     event Sold(uint256 indexed tokenId, address indexed seller, address indexed buyer, uint256 price, address paymentToken);
     event Liked(uint256 indexed tokenId, address indexed user);
     event Unliked(uint256 indexed tokenId, address indexed user);
-    event TokenAllowed(address token, bool allowed);
+    event TokenAllowed(address indexed token, bool allowed);
     event PlatformFeeUpdated(uint96 newFeeBps);
 
     constructor(address _nftContract, address _feeRecipient, address[] memory _allowedTokens) Ownable(msg.sender) {
+        require(_nftContract != address(0), "Invalid nft contract");
+        require(_feeRecipient != address(0), "Invalid recipient");
         nftContract = IERC721(_nftContract);
         feeRecipient = _feeRecipient;
 
@@ -184,6 +186,7 @@ contract MangaMarketplace is Ownable, ReentrancyGuard {
     }
 
     function setFeeRecipient(address _recipient) external onlyOwner {
+        require(_recipient != address(0), "Invalid recipient");
         feeRecipient = _recipient;
     }
 

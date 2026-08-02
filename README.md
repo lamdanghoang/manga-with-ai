@@ -41,8 +41,8 @@ User Prompt → AI Agent → Manga Page → NFT Mint → Marketplace
 
 | Contract                      | Address                                                                                                                |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| MangaNFT (ERC-721 + ERC-2981) | [`0x8F7714bEb51Bb60d87Da6f9BD28874d0D7D341f1`](https://celoscan.io/address/0x8F7714bEb51Bb60d87Da6f9BD28874d0D7D341f1) |
-| MangaMarketplace              | [`0x636C633a35FC5783eAD501AE99bA357368800a9F`](https://celoscan.io/address/0x636C633a35FC5783eAD501AE99bA357368800a9F) |
+| MangaNFT (ERC-721 + ERC-2981) | [`0x538A7786cAB0c825899CA7Dd95Aa3393C9251e54`](https://celoscan.io/address/0x538A7786cAB0c825899CA7Dd95Aa3393C9251e54) |
+| MangaMarketplace              | [`0xf2ce2c499ef172EE462aCBCf44632D0DaF0Ea0c8`](https://celoscan.io/address/0xf2ce2c499ef172EE462aCBCf44632D0DaF0Ea0c8) |
 
 ### Celo Sepolia Testnet (11142220)
 

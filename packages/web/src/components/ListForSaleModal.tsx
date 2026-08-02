@@ -86,6 +86,8 @@ export function ListForSaleModal({
           args: [contracts.marketplace, true],
           chainId: celoSepolia.id,
           dataSuffix: ATTRIBUTION_TAG,
+          // Pay gas in stablecoin so users without CELO can still transact
+          feeCurrency: selectedToken.address,
         });
         setApproveTxHash(tx);
       } else {
@@ -108,6 +110,8 @@ export function ListForSaleModal({
         args: [tokenId, selectedToken.address, priceInUnits],
         chainId: celoSepolia.id,
         dataSuffix: ATTRIBUTION_TAG,
+        // Pay gas in stablecoin so users without CELO can still transact
+        feeCurrency: selectedToken.address,
       });
       setListTxHash(tx);
     } catch (err: any) {
