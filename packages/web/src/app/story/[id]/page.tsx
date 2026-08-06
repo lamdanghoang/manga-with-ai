@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useState, useRef } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { RequireAuth } from '@/components/RequireAuth';
@@ -8,11 +8,14 @@ import { MintNFTButton } from '@/components/MintNFTButton';
 
 export default function StoryPage() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
+  const showLatest = searchParams.get('new') === '1';
   const [story, setStory] = useState<any>(null);
   const [chapters, setChapters] = useState<any[]>([]);
   const [mintingStory, setMintingStory] = useState(false);
   const [metadataURI, setMetadataURI] = useState<string | null>(null);
   const [storyMinted, setStoryMinted] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api(`/v1/stories/${id}`).then((data: any) => {
@@ -21,6 +24,15 @@ export default function StoryPage() {
       Promise.all(data.chapters.map((ch: any) => api(`/v1/stories/${id}/chapters/${ch.id}`))).then(setChapters);
     }).catch(console.error);
   }, [id]);
+
+  // Auto-scroll to latest chapter only when coming from continue story
+  useEffect(() => {
+    if (showLatest && chapters.length > 1 && scrollRef.current) {
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ left: scrollRef.current.scrollWidth, behavior: 'smooth' });
+      }, 300);
+    }
+  }, [chapters, showLatest]);
 
   async function handlePublish() {
     await api(`/v1/stories/${id}/publish`, { method: 'POST' });
@@ -54,7 +66,7 @@ export default function StoryPage() {
       {chapters.length > 0 && (
         <>
           <p className="font-label text-xs text-secondary uppercase mb-2 tracking-wider text-center">← Swipe chapters →</p>
-          <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4">
+          <div ref={scrollRef} className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4">
             {chapters.map((ch) => (
               <div key={ch.id} className="snap-center shrink-0 w-full">
                 <div className="border-4 border-on-surface bg-white comic-shadow overflow-hidden">

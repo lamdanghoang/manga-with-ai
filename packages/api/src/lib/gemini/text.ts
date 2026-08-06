@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 
-const TEXT_MODEL = 'gemini-2.5-pro';
+const TEXT_MODEL = 'gemini-2.5-flash';
 
 function callGemini(body: string): any {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent`;
