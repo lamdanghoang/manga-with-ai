@@ -7,8 +7,17 @@ minimumReleaseAge: 10080
 allowBuilds:
   '@google/genai': true
   '@sentry/cli': true
+  '@prisma/client': true
+  '@prisma/engines': true
+  bufferutil: true
+  esbuild: true
+  keccak: true
   msgpackr-extract: true
-  protobufjs: set this to true or false
+  prisma: true
+  protobufjs: true
+  secp256k1: true
+  sharp: true
+  utf-8-validate: true
 
 onlyBuiltDependencies:
   - "@google/genai"
