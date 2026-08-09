@@ -1,4 +1,4 @@
-const TEXT_MODEL = 'gemini-2.5-flash';
+const TEXT_MODEL = 'gemini-3-flash-preview';
 
 async function callGemini(body: unknown): Promise<any> {
   const apiKey = process.env.GEMINI_API_KEY;

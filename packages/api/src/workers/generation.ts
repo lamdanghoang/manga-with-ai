@@ -32,6 +32,22 @@ async function refundCreditOnce(jobId: string, userId: string) {
   });
 }
 
+/**
+ * If job was paid on-chain (not via credit) and failed,
+ * grant 1 free credit as compensation since we cannot refund USDC automatically.
+ */
+async function compensateFailedPaidJob(jobId: string, userId: string) {
+  const payment = await prisma.generationPayment.findUnique({ where: { generationJobId: jobId } });
+  if (!payment) return; // not a paid job, skip
+  const job = await prisma.generationJob.findUnique({ where: { id: jobId } });
+  if (!job || job.creditCharged || job.creditRefunded) return; // already handled
+  // Mark as refunded to prevent double compensation
+  await prisma.$transaction(async (tx) => {
+    await tx.generationJob.update({ where: { id: jobId }, data: { creditRefunded: true } });
+    await tx.user.update({ where: { id: userId }, data: { credits: { increment: 1 } } });
+  });
+}
+
 const STORY_BIBLE_SCHEMA = {
   type: 'OBJECT',
   properties: {
@@ -238,6 +254,7 @@ export async function processCreateStory(jobId: string) {
   } catch (err: any) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', errorMessage: sanitize(err.message || "Unknown error"), finishedAt: new Date() } });
     await refundCreditOnce(jobId, job.userId).catch(() => {});
+    await compensateFailedPaidJob(jobId, job.userId).catch(() => {});
   }
 }
 
@@ -335,6 +352,7 @@ export async function processContinueStory(jobId: string) {
   } catch (err: any) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', errorMessage: sanitize(err.message || "Unknown error"), finishedAt: new Date() } });
     await refundCreditOnce(jobId, job.userId).catch(() => {});
+    await compensateFailedPaidJob(jobId, job.userId).catch(() => {});
   }
 }
 
