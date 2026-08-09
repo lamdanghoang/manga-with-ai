@@ -1,54 +1,68 @@
 import { Router, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authMiddleware, AuthRequest } from "./auth";
+import { z } from "zod";
+import { rateLimit, requestIp } from "../middleware/rateLimit";
+import { findOwnedChapter, findOwnedPanel, findOwnedStory } from "../lib/ownership";
 
 const router = Router();
+
+const stylePresetSchema = z.enum([
+  "manga-bw", "manga-soft-color", "high-energy", "dark-dramatic", "chibi-cute",
+  "cyberpunk-neon", "watercolor-fantasy", "retro-80s", "horror-ito", "webtoon-color",
+]);
+const createStorySchema = z.object({
+  prompt: z.string().trim().min(1).max(4000),
+  stylePreset: stylePresetSchema,
+  panelCount: z.union([z.literal(4), z.literal(6), z.literal(8)]),
+  title: z.string().trim().min(1).max(200).optional(),
+  characterRefs: z.array(z.object({
+    name: z.string().trim().max(120).optional(),
+    role: z.string().trim().max(50).optional(),
+    imageData: z.string().max(5_000_000).refine((value) => /^data:image\/(png|jpeg|webp);base64,/.test(value), "Invalid image data"),
+  })).max(5).optional(),
+});
+const continueStorySchema = z.object({
+  prompt: z.string().trim().min(1).max(4000),
+  branchMode: z.enum(["canon", "alternate"]).optional(),
+});
+const patchStorySchema = z.object({ title: z.string().trim().min(1).max(200).optional(), synopsis: z.string().max(5000).nullable().optional(), visibility: z.enum(["private", "public"]).optional(), status: z.enum(["draft", "ongoing", "completed", "archived"]).optional() }).strict();
+const txHashSchema = z.string().regex(/^0x[a-fA-F0-9]{64}$/);
+
+async function restoreRequestCredit(req: AuthRequest) {
+  if (!(req as any).creditDeducted) return;
+  (req as any).creditDeducted = false;
+  await prisma.user.update({ where: { id: req.userId! }, data: { credits: { increment: 1 } } });
+}
 
 router.post(
   "/stories",
   authMiddleware,
   async (req: AuthRequest, res: Response) => {
-    const { prompt, stylePreset, panelCount, title, characterRefs } = req.body;
-    if (!prompt || !stylePreset || !panelCount) {
-      res
-        .status(400)
-        .json({ error: "Missing prompt, stylePreset, or panelCount" });
-      return;
+    const parsed = createStorySchema.safeParse(req.body);
+    if (!parsed.success) {
+      await restoreRequestCredit(req);
+      res.status(400).json({ error: "Invalid story input", details: parsed.error.flatten() }); return;
     }
+    const { prompt, stylePreset, panelCount, title, characterRefs } = parsed.data;
 
-    const story = await prisma.story.create({
-      data: {
-        ownerUserId: req.userId!,
-        title: title || "Untitled Story",
-        status: "draft",
-        stylePreset,
-        aspectRatio: "3:4",
-      },
-    });
-
-    // Save character reference images if provided
-    if (characterRefs?.length) {
-      for (const ref of characterRefs) {
-        await prisma.character.create({
-          data: {
-            storyId: story.id,
-            name: ref.name || "Character",
-            role: ref.role || "main",
-            referenceImageUrl: ref.imageData, // base64 data URL
-            appearanceTraits: {},
-            personalityTraits: {},
-            canonicalOutfit: {},
-          },
-        });
-      }
-    }
-
-    const job = await prisma.generationJob.create({
-      data: {
+    let story: { id: string };
+    let job: { id: string };
+    try {
+      ({ story, job } = await prisma.$transaction(async (tx) => {
+        const createdStory = await tx.story.create({ data: {
+          ownerUserId: req.userId!, title: title || "Untitled Story", status: "draft", stylePreset, aspectRatio: "3:4",
+        }});
+        if (characterRefs?.length) await tx.character.createMany({ data: characterRefs.map((ref) => ({
+          storyId: createdStory.id, name: ref.name || "Character", role: ref.role || "main",
+          referenceImageUrl: ref.imageData, appearanceTraits: {}, personalityTraits: {}, canonicalOutfit: {},
+        })) });
+        const createdJob = await tx.generationJob.create({ data: {
         userId: req.userId!,
-        storyId: story.id,
+        storyId: createdStory.id,
         jobType: "create_story",
         status: "queued",
+        creditCharged: Boolean((req as any).creditDeducted),
         inputPayload: {
           prompt,
           stylePreset,
@@ -56,8 +70,18 @@ router.post(
           paymentTx: (req as any).paymentTx || null,
           paymentToken: (req as any).paymentToken || null,
         },
-      },
-    });
+        }});
+        if ((req as any).paymentTx) await tx.generationPayment.create({ data: {
+          txHash: (req as any).paymentTx, userId: req.userId!, generationJobId: createdJob.id,
+          token: (req as any).paymentToken || "USDC", chainId: process.env.CHAIN === "mainnet" ? 42220 : 11142220,
+        }});
+        return { story: createdStory, job: createdJob };
+      }));
+    } catch (error: any) {
+      await restoreRequestCredit(req);
+      if (error?.code === "P2002") { res.status(409).json({ error: "Payment transaction already used" }); return; }
+      throw error;
+    }
 
 
     res
@@ -151,12 +175,14 @@ router.patch(
   "/stories/:storyId",
   authMiddleware,
   async (req: AuthRequest, res: Response) => {
-    const { title, synopsis, visibility, status } = req.body;
+    const parsed = patchStorySchema.safeParse(req.body);
+    if (!parsed.success) { res.status(400).json({ error: "Invalid story update", details: parsed.error.flatten() }); return; }
+    const { title, synopsis, visibility, status } = parsed.data;
     const result = await prisma.story.updateMany({
       where: { id: req.params.storyId as string, ownerUserId: req.userId! },
       data: {
         ...(title && { title }),
-        ...(synopsis && { synopsis }),
+        ...(synopsis !== undefined && { synopsis }),
         ...(visibility && { visibility }),
         ...(status && { status }),
       },
@@ -195,34 +221,47 @@ router.post(
   "/stories/:storyId/chapters",
   authMiddleware,
   async (req: AuthRequest, res: Response) => {
-    const { prompt, branchMode } = req.body;
-    if (!prompt) {
-      res.status(400).json({ error: "Missing prompt" });
-      return;
+    const parsed = continueStorySchema.safeParse(req.body);
+    if (!parsed.success) {
+      await restoreRequestCredit(req);
+      res.status(400).json({ error: "Invalid continuation input", details: parsed.error.flatten() }); return;
     }
+    const { prompt, branchMode } = parsed.data;
 
-    const story = await prisma.story.findFirst({
-      where: { id: req.params.storyId as string, ownerUserId: req.userId! },
-    });
+    const story = await findOwnedStory(req.userId!, req.params.storyId as string);
     if (!story) {
+      await restoreRequestCredit(req);
       res.status(404).json({ error: "Story not found" });
       return;
     }
 
-    const job = await prisma.generationJob.create({
-      data: {
+    let job: { id: string };
+    try {
+      job = await prisma.$transaction(async (tx) => {
+        const createdJob = await tx.generationJob.create({ data: {
         userId: req.userId!,
         storyId: story.id,
         jobType: "continue_story",
         status: "queued",
+        creditCharged: Boolean((req as any).creditDeducted),
         inputPayload: {
           prompt,
           branchMode: branchMode || "canon",
           paymentTx: (req as any).paymentTx || null,
           paymentToken: (req as any).paymentToken || null,
         },
-      },
-    });
+        }});
+        if ((req as any).paymentTx) await tx.generationPayment.create({ data: {
+          txHash: (req as any).paymentTx, userId: req.userId!, generationJobId: createdJob.id,
+          token: (req as any).paymentToken || "USDC", chainId: process.env.CHAIN === "mainnet" ? 42220 : 11142220,
+        }});
+        return createdJob;
+      });
+    } catch (error: any) {
+      await restoreRequestCredit(req);
+      if (error?.code === "P2002") { res.status(409).json({ error: "Payment transaction already used" }); return; }
+      throw error;
+    }
 
 
     res
@@ -244,6 +283,7 @@ router.get(
       where: {
         id: req.params.chapterId as string,
         storyId: req.params.storyId as string,
+        story: { ownerUserId: req.userId! },
       },
       include: { panels: { orderBy: { panelNumber: "asc" } } },
     });
@@ -393,11 +433,8 @@ router.post(
   "/chapters/:chapterId/regenerate",
   authMiddleware,
   async (req: AuthRequest, res: Response) => {
-    const chapter = await prisma.chapter.findFirst({
-      where: { id: req.params.chapterId as string },
-      include: { story: true },
-    });
-    if (!chapter || chapter.story.ownerUserId !== req.userId!) {
+    const chapter = await findOwnedChapter(req.userId!, req.params.chapterId as string);
+    if (!chapter) {
       res.status(404).json({ error: "Not found" });
       return;
     }
@@ -427,11 +464,8 @@ router.post(
   "/panels/:panelId/regenerate",
   authMiddleware,
   async (req: AuthRequest, res: Response) => {
-    const panel = await prisma.chapterPanel.findFirst({
-      where: { id: req.params.panelId as string },
-      include: { chapter: { include: { story: true } } },
-    });
-    if (!panel || panel.chapter.story.ownerUserId !== req.userId!) {
+    const panel = await findOwnedPanel(req.userId!, req.params.panelId as string);
+    if (!panel) {
       res.status(404).json({ error: "Not found" });
       return;
     }
@@ -458,7 +492,7 @@ router.post(
 );
 
 // Like a public story
-router.post("/public/stories/:slug/like", async (req, res) => {
+router.post("/public/stories/:slug/like", rateLimit({ windowMs: 60_000, max: 30, key: requestIp }), async (req, res) => {
   const story = await prisma.story.findFirst({
     where: { publicSlug: req.params.slug as string, visibility: "public" },
   });
@@ -478,7 +512,7 @@ router.post("/public/stories/:slug/like", async (req, res) => {
 });
 
 // Share count increment
-router.post("/public/stories/:slug/share", async (req, res) => {
+router.post("/public/stories/:slug/share", rateLimit({ windowMs: 60_000, max: 30, key: requestIp }), async (req, res) => {
   const story = await prisma.story.findFirst({
     where: { publicSlug: req.params.slug as string, visibility: "public" },
   });
@@ -614,11 +648,8 @@ router.post(
 
 // Generate NFT metadata JSON, upload to R2, return URL
 router.post('/chapters/:chapterId/metadata', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const chapter = await prisma.chapter.findFirst({
-    where: { id: req.params.chapterId as string },
-    include: { story: true },
-  });
-  if (!chapter || chapter.story.ownerUserId !== req.userId!) { res.status(404).json({ error: 'Not found' }); return; }
+  const chapter = await findOwnedChapter(req.userId!, req.params.chapterId as string);
+  if (!chapter) { res.status(404).json({ error: 'Not found' }); return; }
 
   const asset = await prisma.asset.findFirst({ where: { chapterId: chapter.id, assetType: 'chapter_page', isActive: true } });
   if (!asset) { res.status(400).json({ error: 'No image for this chapter' }); return; }
@@ -646,13 +677,10 @@ router.post('/chapters/:chapterId/metadata', authMiddleware, async (req: AuthReq
 // Mark chapter as minted
 router.post('/chapters/:chapterId/minted', authMiddleware, async (req: AuthRequest, res: Response) => {
   const { txHash } = req.body;
-  if (!txHash) { res.status(400).json({ error: 'Missing txHash' }); return; }
+  if (!txHashSchema.safeParse(txHash).success) { res.status(400).json({ error: 'Invalid txHash' }); return; }
 
-  const chapter = await prisma.chapter.findFirst({
-    where: { id: req.params.chapterId as string },
-    include: { story: true },
-  });
-  if (!chapter || chapter.story.ownerUserId !== req.userId!) { res.status(404).json({ error: 'Not found' }); return; }
+  const chapter = await findOwnedChapter(req.userId!, req.params.chapterId as string);
+  if (!chapter) { res.status(404).json({ error: 'Not found' }); return; }
 
   await prisma.chapter.update({ where: { id: chapter.id }, data: { mintTxHash: txHash } as any });
   res.json({ success: true });
@@ -686,7 +714,7 @@ router.get('/nft/:storyId', async (req, res) => {
 
 // Mint story — return metadata URL
 router.post('/stories/:storyId/mint-metadata', authMiddleware, async (req: AuthRequest, res: Response) => {
-  const story = await prisma.story.findFirst({ where: { id: req.params.storyId as string, ownerUserId: req.userId! } });
+  const story = await findOwnedStory(req.userId!, req.params.storyId as string);
   if (!story) { res.status(404).json({ error: 'Not found' }); return; }
 
   const metadataURI = `https://mangawithai.duckdns.org/v1/nft/${story.id}`;
@@ -696,7 +724,8 @@ router.post('/stories/:storyId/mint-metadata', authMiddleware, async (req: AuthR
 // Mark story as minted
 router.post('/stories/:storyId/minted', authMiddleware, async (req: AuthRequest, res: Response) => {
   const { txHash } = req.body;
-  const story = await prisma.story.findFirst({ where: { id: req.params.storyId as string, ownerUserId: req.userId! } });
+  if (!txHashSchema.safeParse(txHash).success) { res.status(400).json({ error: 'Invalid txHash' }); return; }
+  const story = await findOwnedStory(req.userId!, req.params.storyId as string);
   if (!story) { res.status(404).json({ error: 'Not found' }); return; }
 
   await prisma.story.update({ where: { id: story.id }, data: { mintTxHash: txHash } as any });

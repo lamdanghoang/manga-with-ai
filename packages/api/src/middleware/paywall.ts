@@ -52,9 +52,7 @@ const client = createPublicClient({
 async function verifyPaymentTx(txHash: string): Promise<{ valid: boolean; tokenSymbol?: string }> {
   try {
     // Check replay: tx not used before
-    const existing = await prisma.generationJob.findFirst({
-      where: { inputPayload: { path: ["paymentTx"], equals: txHash } },
-    });
+    const existing = await prisma.generationPayment.findUnique({ where: { txHash } });
     if (existing) return { valid: false };
 
     // Verify on-chain (always in production, optional in dev)
@@ -96,6 +94,7 @@ export async function paywall(req: Request, res: Response, next: NextFunction) {
 
   const txHash = req.headers["x-payment-tx"] as string;
   if (txHash) {
+    if (!/^0x[a-fA-F0-9]{64}$/.test(txHash)) { res.status(400).json({ error: "Invalid payment transaction hash" }); return; }
     const result = await verifyPaymentTx(txHash);
     if (result.valid) {
       (req as any).paymentTx = txHash;

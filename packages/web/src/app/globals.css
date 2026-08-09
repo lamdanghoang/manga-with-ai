@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Chivo:wght@400;700&family=Space+Grotesk:wght@400;700&display=swap');
 @import "tailwindcss";
 
 html, body {
@@ -10,7 +11,6 @@ html, body {
   touch-action: manipulation;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Chivo:wght@400;700&family=Space+Grotesk:wght@400;700&display=swap');
 
 @theme {
   --color-primary: #b81120;

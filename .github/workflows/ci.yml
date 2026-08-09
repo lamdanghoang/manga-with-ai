@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: manga_with_ai_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/manga_with_ai_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/manga_with_ai_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @manga-with-ai/api exec prisma migrate deploy --schema prisma/schema.prisma
+      - run: pnpm --filter @manga-with-ai/shared build
+      - run: pnpm --filter @manga-with-ai/api build
+      - run: pnpm --filter @manga-with-ai/api test
+      - run: pnpm --filter @manga-with-ai/web build
+      - run: pnpm --filter @manga-with-ai/contracts test
+        env:
+          HARDHAT_DISABLE_TELEMETRY: "1"

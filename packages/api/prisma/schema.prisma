@@ -14,6 +14,7 @@ model User {
   avatarUrl     String?  @map("avatar_url")
   credits       Int      @default(1) // starts with 1 free credit
   tier          String   @default("free") @db.VarChar(20) // free | starter | creator | pro
+  tokenVersion  Int      @default(0) @map("token_version")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -23,8 +24,22 @@ model User {
   subscriptions    UserSubscription[]
   comments         Comment[]
   creditPurchases  CreditPurchase[]
+  generationPayments GenerationPayment[]
 
   @@map("users")
+}
+
+model AuthChallenge {
+  id            String    @id @default(uuid()) @db.Uuid
+  walletAddress String    @map("wallet_address") @db.VarChar(64)
+  nonce         String    @unique @db.VarChar(64)
+  message       String
+  expiresAt     DateTime  @map("expires_at")
+  usedAt        DateTime? @map("used_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([walletAddress, createdAt])
+  @@map("auth_challenges")
 }
 
 model Story {
@@ -200,6 +215,8 @@ model GenerationJob {
   inputPayload  Json      @default("{}") @map("input_payload")
   outputPayload Json      @default("{}") @map("output_payload")
   errorMessage  String?   @map("error_message")
+  creditCharged Boolean   @default(false) @map("credit_charged")
+  creditRefunded Boolean  @default(false) @map("credit_refunded")
   createdAt     DateTime  @default(now()) @map("created_at")
   startedAt     DateTime? @map("started_at")
   finishedAt    DateTime? @map("finished_at")
@@ -207,8 +224,24 @@ model GenerationJob {
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   story   Story?   @relation(fields: [storyId], references: [id], onDelete: Cascade)
   chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  payment GenerationPayment?
 
   @@map("generation_jobs")
+}
+
+model GenerationPayment {
+  id              String   @id @default(uuid()) @db.Uuid
+  txHash          String   @unique @map("tx_hash") @db.VarChar(80)
+  userId          String   @map("user_id") @db.Uuid
+  generationJobId String   @unique @map("generation_job_id") @db.Uuid
+  token           String   @db.VarChar(10)
+  chainId         Int      @map("chain_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generationJob GenerationJob @relation(fields: [generationJobId], references: [id], onDelete: Cascade)
+
+  @@map("generation_payments")
 }
 
 model StoryBranch {

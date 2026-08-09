@@ -104,8 +104,15 @@ GET https://www.mangawithai.site/.well-known/ai-plugin.json
 
 ```typescript
 // 1. AUTHENTICATE — sign a nonce with your wallet
-const nonce = `Sign in to MangaWithAI: ${Date.now()}`;
-const signature = await wallet.signMessage(nonce);
+const challenge = await fetch(
+  "https://mangawithai.duckdns.org/v1/auth/challenge",
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ walletAddress: "0xYourWallet" }),
+  },
+).then((r) => r.json());
+const signature = await wallet.signMessage(challenge.message);
 
 const { token } = await fetch(
   "https://mangawithai.duckdns.org/v1/session/minipay",
@@ -114,7 +121,7 @@ const { token } = await fetch(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       walletAddress: "0xYourWallet",
-      nonce,
+      nonce: challenge.nonce,
       signature,
     }),
   },

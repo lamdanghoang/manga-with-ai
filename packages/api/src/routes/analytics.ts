@@ -1,9 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import jwt from 'jsonwebtoken';
+import { verifyAccessToken } from '../lib/auth';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 
 // POST /v1/analytics/event — fire-and-forget event tracking
 router.post('/analytics/event', async (req: Request, res: Response) => {
@@ -19,7 +18,7 @@ router.post('/analytics/event', async (req: Request, res: Response) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (token) {
     try {
-      const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
+      const payload = verifyAccessToken(token);
       userId = payload.userId;
     } catch {}
   }
@@ -53,7 +52,7 @@ router.get('/analytics/summary', async (req: Request, res: Response) => {
 
     let userId: string;
     try {
-      const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
+      const payload = verifyAccessToken(token);
       userId = payload.userId;
     } catch {
       res.status(401).json({ error: 'Unauthorized' });

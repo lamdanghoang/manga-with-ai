@@ -53,7 +53,7 @@ server.tool(
       await new Promise((r) => setTimeout(r, 3000));
       const jobRes = await fetch(`${API_URL}/v1/jobs/${jobId}`, { headers: { Authorization: `Bearer ${authToken}` } });
       const job = await jobRes.json();
-      if (job.status === "completed") {
+      if (job.status === "completed" || job.status === "completed_partial") {
         const storyRes = await fetch(`${API_URL}/v1/stories/${storyId}`, { headers: { Authorization: `Bearer ${authToken}` } });
         const story = await storyRes.json();
         const chapterId = story.chapters?.[0]?.id;
@@ -113,7 +113,7 @@ server.tool(
       await new Promise((r) => setTimeout(r, 3000));
       const jobRes = await fetch(`${API_URL}/v1/jobs/${jobId}`, { headers: { Authorization: `Bearer ${authToken}` } });
       const job = await jobRes.json();
-      if (job.status === "completed") {
+      if (job.status === "completed" || job.status === "completed_partial") {
         return { content: [{ type: "text", text: `✅ New chapter added to story ${storyId}` }] };
       }
       if (job.status === "failed") {

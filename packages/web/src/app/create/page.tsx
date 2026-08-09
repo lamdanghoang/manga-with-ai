@@ -141,7 +141,7 @@ export default function CreatePage() {
             ? "GENERATING MANGA PAGE..."
             : job.status.toUpperCase(),
         );
-        if (job.status === "completed") {
+        if (job.status === "completed" || job.status === "completed_partial") {
           clearInterval(interval);
           trackEvent('story_completed', { storyId: res.storyId });
           router.push(`/story/${res.storyId}`);

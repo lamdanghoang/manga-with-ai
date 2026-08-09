@@ -50,7 +50,7 @@ export default function ContinuePage() {
       const interval = setInterval(async () => {
         const job = await api<{ status: string; chapterId: string | null }>(`/v1/jobs/${res.jobId}`);
         setStatus(job.status === 'running' ? 'GENERATING MANGA PAGE...' : job.status.toUpperCase());
-        if (job.status === 'completed') { clearInterval(interval); router.push(`/story/${id}?new=1`); }
+        if (job.status === 'completed' || job.status === 'completed_partial') { clearInterval(interval); router.push(`/story/${id}?new=1`); }
         else if (job.status === 'failed') { clearInterval(interval); setLoading(false); setStatus('FAILED'); }
       }, 3000);
     } catch (err: any) {

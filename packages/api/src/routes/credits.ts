@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { authMiddleware, AuthRequest } from './auth';
 
 const router = Router();
+const TX_HASH_PATTERN = /^0x[a-fA-F0-9]{64}$/;
 
 const IS_MAINNET = process.env.CHAIN === 'mainnet';
 
@@ -69,8 +70,8 @@ router.get('/user/credits', authMiddleware, async (req: AuthRequest, res: Respon
 router.post('/user/buy-package', authMiddleware, async (req: AuthRequest, res: Response) => {
   const { paymentTx, package: packageName } = req.body;
 
-  if (!paymentTx || !packageName) {
-    res.status(400).json({ error: 'Missing paymentTx or package' });
+  if (!TX_HASH_PATTERN.test(String(paymentTx || '')) || !packageName) {
+    res.status(400).json({ error: 'Invalid paymentTx or package' });
     return;
   }
 

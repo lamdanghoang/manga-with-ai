@@ -12,10 +12,6 @@ if (!R2_CONFIGURED && !fs.existsSync(LOCAL_DIR)) {
 
 async function uploadToR2(buffer: Buffer, mimeType: string, key: string): Promise<string> {
   const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const { NodeHttpHandler } = await import('@smithy/node-http-handler');
-  const https = await import('https');
-
-  const agent = new https.Agent({ rejectUnauthorized: false });
   const s3 = new S3Client({
     region: 'auto',
     endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -23,7 +19,6 @@ async function uploadToR2(buffer: Buffer, mimeType: string, key: string): Promis
       accessKeyId: process.env.R2_ACCESS_KEY_ID!,
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
     },
-    requestHandler: new NodeHttpHandler({ httpsAgent: agent }),
     forcePathStyle: true,
   });
 

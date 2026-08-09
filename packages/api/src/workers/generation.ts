@@ -8,6 +8,30 @@ function sanitize(str: string): string {
   return str.replace(/\x00/g, '').replace(/[\uFFFD]/g, '');
 }
 
+async function withRetry<T>(operation: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try { return await operation(); }
+    catch (error) {
+      lastError = error;
+      if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** (attempt - 1)));
+    }
+  }
+  throw lastError;
+}
+
+async function refundCreditOnce(jobId: string, userId: string) {
+  await prisma.$transaction(async (tx) => {
+    const marked = await tx.generationJob.updateMany({
+      where: { id: jobId, creditCharged: true, creditRefunded: false },
+      data: { creditRefunded: true },
+    });
+    if (marked.count === 1) {
+      await tx.user.update({ where: { id: userId }, data: { credits: { increment: 1 } } });
+    }
+  });
+}
+
 const STORY_BIBLE_SCHEMA = {
   type: 'OBJECT',
   properties: {
@@ -184,7 +208,7 @@ export async function processCreateStory(jobId: string) {
     let chapterImageUrl: string | null = null;
     try {
       const refImages = charRefs.filter(c => c.referenceImageUrl && c.referenceImageUrl.startsWith('data:')).map(c => ({ data: c.referenceImageUrl!.replace(/^data:[^;]+;base64,/, ''), mimeType: 'image/png' }));
-      const result = await generateImage({ prompt: fullPagePrompt, referenceImages: refImages.length ? refImages : undefined, aspectRatio: '2:3' });
+      const result = await withRetry(() => generateImage({ prompt: fullPagePrompt, referenceImages: refImages.length ? refImages : undefined, aspectRatio: '2:3' }));
       console.log('[IMAGE] Got image, size:', result.imageData.length, 'bytes');
       chapterImageUrl = await uploadImage(result.imageData, result.mimeType);
       console.log('[IMAGE] Saved to:', chapterImageUrl);
@@ -210,10 +234,10 @@ export async function processCreateStory(jobId: string) {
     // Update story counts + set cover from first chapter image
     const coverAsset = await prisma.asset.findFirst({ where: { storyId: job.storyId!, assetType: 'chapter_page' } });
     await prisma.story.update({ where: { id: job.storyId! }, data: { totalChapters: 1, totalPanels: scenePlan.panels.length, coverImageUrl: coverAsset?.fileUrl || null } });
-    await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'completed', chapterId: chapter.id, finishedAt: new Date() } });
+    await prisma.generationJob.update({ where: { id: jobId }, data: { status: chapterImageUrl ? 'completed' : 'completed_partial', chapterId: chapter.id, finishedAt: new Date() } });
   } catch (err: any) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', errorMessage: sanitize(err.message || "Unknown error"), finishedAt: new Date() } });
-        await prisma.user.update({ where: { id: job.userId }, data: { credits: { increment: 1 } } }).catch(() => {});
+    await refundCreditOnce(jobId, job.userId).catch(() => {});
   }
 }
 
@@ -277,7 +301,7 @@ export async function processContinueStory(jobId: string) {
     let continueImageUrl: string | null = null;
     try {
       const refImages = charRefs.map(c => ({ data: c.referenceImageUrl!.replace(/^data:[^;]+;base64,/, ''), mimeType: 'image/png' }));
-      const result = await generateImage({ prompt: fullPagePrompt, referenceImages: refImages.length ? refImages : undefined, aspectRatio: '2:3' });
+      const result = await withRetry(() => generateImage({ prompt: fullPagePrompt, referenceImages: refImages.length ? refImages : undefined, aspectRatio: '2:3' }));
       continueImageUrl = await uploadImage(result.imageData, result.mimeType);
       console.log('[IMAGE] Continue saved to:', continueImageUrl);
     } catch (imgErr: any) {
@@ -307,10 +331,10 @@ export async function processContinueStory(jobId: string) {
     });
 
     await prisma.story.update({ where: { id: job.storyId! }, data: { totalChapters: chapterNumber, latestStoryBibleVersion: newVersion } });
-    await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'completed', chapterId: chapter.id, finishedAt: new Date() } });
+    await prisma.generationJob.update({ where: { id: jobId }, data: { status: continueImageUrl ? 'completed' : 'completed_partial', chapterId: chapter.id, finishedAt: new Date() } });
   } catch (err: any) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', errorMessage: sanitize(err.message || "Unknown error"), finishedAt: new Date() } });
-        await prisma.user.update({ where: { id: job.userId }, data: { credits: { increment: 1 } } }).catch(() => {});
+    await refundCreditOnce(jobId, job.userId).catch(() => {});
   }
 }
 
@@ -325,7 +349,7 @@ export async function processRegeneratePanel(jobId: string) {
     // Deactivate old assets
     await prisma.asset.updateMany({ where: { panelId, isActive: true }, data: { isActive: false } });
 
-    const result = await generateImage({ prompt: panel.visualPrompt, aspectRatio: panel.chapter.story.aspectRatio || '3:4' });
+    const result = await withRetry(() => generateImage({ prompt: panel.visualPrompt, aspectRatio: panel.chapter.story.aspectRatio || '3:4' }));
     const fileUrl = await uploadImage(result.imageData, result.mimeType);
 
     await prisma.asset.create({
@@ -335,7 +359,7 @@ export async function processRegeneratePanel(jobId: string) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'completed', finishedAt: new Date() } });
   } catch (err: any) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', errorMessage: sanitize(err.message || "Unknown error"), finishedAt: new Date() } });
-        await prisma.user.update({ where: { id: job.userId }, data: { credits: { increment: 1 } } }).catch(() => {});
+    await refundCreditOnce(jobId, job.userId).catch(() => {});
   }
 }
 
@@ -350,7 +374,7 @@ export async function processRegenerateChapter(jobId: string) {
       await prisma.asset.updateMany({ where: { panelId: panel.id, isActive: true }, data: { isActive: false } });
 
       try {
-        const result = await generateImage({ prompt: panel.visualPrompt, aspectRatio: chapter.story.aspectRatio || '3:4' });
+        const result = await withRetry(() => generateImage({ prompt: panel.visualPrompt, aspectRatio: chapter.story.aspectRatio || '3:4' }));
         const fileUrl = await uploadImage(result.imageData, result.mimeType);
         await prisma.asset.create({
           data: { ownerUserId: job.userId, storyId: chapter.storyId, chapterId: chapter.id, panelId: panel.id, assetType: 'panel_image', fileUrl, mimeType: result.mimeType, generationModel: 'gemini-3-pro-image-preview', generationParams: { prompt: sanitize(panel.visualPrompt) }, version: 2 },
@@ -363,6 +387,6 @@ export async function processRegenerateChapter(jobId: string) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'completed', finishedAt: new Date() } });
   } catch (err: any) {
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', errorMessage: sanitize(err.message || "Unknown error"), finishedAt: new Date() } });
-        await prisma.user.update({ where: { id: job.userId }, data: { credits: { increment: 1 } } }).catch(() => {});
+    await refundCreditOnce(jobId, job.userId).catch(() => {});
   }
 }

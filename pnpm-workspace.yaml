@@ -1,10 +1,14 @@
 packages:
   - "packages/*"
 
+# MiniPay security: reject packages published less than 7 days ago
+minimumReleaseAge: 10080
+
 allowBuilds:
   '@google/genai': true
   '@sentry/cli': true
   msgpackr-extract: true
+  protobufjs: set this to true or false
 
 onlyBuiltDependencies:
   - "@google/genai"

@@ -1,21 +1,10 @@
 import "dotenv/config";
 import "./instrument"; // Sentry must be imported before other modules
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // BigInt JSON serialization
 (BigInt.prototype as any).toJSON = function () {
   return Number(this);
 };
-
-// Suppress unhandled SSL errors from background connections
-process.on("uncaughtException", (err) => {
-  if (err.message?.includes("EPROTO") || err.message?.includes("ssl")) {
-    console.warn("[WARN] Suppressed SSL error:", err.message.slice(0, 80));
-    return;
-  }
-  console.error("Uncaught:", err);
-  process.exit(1);
-});
 
 import express from "express";
 import cors from "cors";
@@ -30,8 +19,16 @@ import { startJobPoller } from "./workers/poller";
 import path from "path";
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: "50mb" }));
+const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim());
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("Origin is not allowed by CORS"));
+  },
+}));
+app.use(express.json({ limit: "30mb" }));
 app.use("/uploads", express.static(path.resolve("uploads")));
 
 app.get("/health", (_req, res) => {
@@ -106,6 +103,9 @@ app.get("/.well-known/agent.json", (_req, res) => {
 app.use("/v1", authRouter);
 
 // Payment: free tier check + x402 paywall (only if MERCHANT_WALLET set)
+if (process.env.NODE_ENV === "production" && !process.env.MERCHANT_WALLET) {
+  throw new Error("MERCHANT_WALLET is required in production");
+}
 if (process.env.MERCHANT_WALLET) {
   const { freeTierGuard } = require("./middleware/freeTier");
   const { paywall } = require("./middleware/paywall");

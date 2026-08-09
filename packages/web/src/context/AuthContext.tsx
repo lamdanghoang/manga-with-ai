@@ -44,22 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSigningIn(true);
     setError(null);
     try {
-      const isMiniPay = typeof window !== 'undefined' && (window as any).ethereum?.isMiniPay;
-      let nonce: string;
-      let signature: string;
-
-      if (isMiniPay) {
-        // MiniPay does not support personal_sign — use address-based auth
-        nonce = `Sign in to MangaWithAI: ${Date.now()}`;
-        signature = '0x' + 'minipay_trusted';
-      } else {
-        nonce = `Sign in to MangaWithAI: ${Date.now()}`;
-        signature = await signMessageAsync({ message: nonce });
-      }
+      const challenge = await api<{ nonce: string; message: string }>('/v1/auth/challenge', {
+        method: 'POST',
+        body: JSON.stringify({ walletAddress: address }),
+      });
+      const signature = await signMessageAsync({ message: challenge.message });
 
       const data = await api<{ token: string }>('/v1/session/minipay', {
         method: 'POST',
-        body: JSON.stringify({ walletAddress: address, nonce, signature }),
+        body: JSON.stringify({ walletAddress: address, nonce: challenge.nonce, signature }),
       });
       localStorage.setItem('token', data.token);
       localStorage.removeItem('logged_out');
@@ -109,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isConnected, address, connectors, connect, signIn]);
 
   const signOut = useCallback(() => {
+    void api('/v1/auth/revoke', { method: 'POST' }).catch(() => {});
     localStorage.removeItem('token');
     localStorage.setItem('logged_out', '1');
     setIsAuthed(false);
