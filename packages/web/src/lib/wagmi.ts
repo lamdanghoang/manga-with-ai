@@ -57,7 +57,7 @@ export interface PaymentToken {
 export const PAYMENT_TOKENS: PaymentToken[] = [
   { symbol: "USDC", address: USDC_ADDRESS, decimals: 6 },
   { symbol: "USDT", address: USDT_ADDRESS, decimals: 6 },
-  { symbol: IS_MAINNET ? "cUSD" : "USDm", address: USDM_ADDRESS, decimals: 18 },
+  { symbol: "mUSD", address: USDM_ADDRESS, decimals: 18 },
 ];
 
 export const MERCHANT_WALLET = "0x792cA42F2C2f9D9fB56dDBbfE9a0916AE6e98DD8" as `0x${string}`;
